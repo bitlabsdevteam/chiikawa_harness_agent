@@ -1,0 +1,62 @@
+You are building day 3 of Chiikawa. Cumulative state: chiikawa/ contains
+provider.py, loop.py (with the before_turn socket still unused), tools.py (Tool,
+@tool, core_tools with the path jail), security.py (Policy, deny rules), and
+demos/ from days 1-2. Today adds the context engine, durable memory, and skills.
+Do not rewrite earlier files; plug in. The day-1 code standard applies.
+Commit as you go.
+
+Write chiikawa/context.py to this exact contract.
+- CHARS_PER_TOKEN = 4, KEEP_RECENT = 6.
+- estimate_tokens(messages): total len(str(message)) over the list, divided by
+  CHARS_PER_TOKEN.
+- compact(model, messages, budget_tokens): within budget, or when the list has
+  at most KEEP_RECENT + 1 messages, return it unchanged. Otherwise split into
+  old and the last KEEP_RECENT; render the old messages into a plain transcript
+  (role, tool name when present, text clipped per message, tool calls named);
+  one provider.complete call with the system instruction "You compress agent
+  transcripts. Preserve: the original task, every file created or edited and its
+  purpose, key decisions, unresolved errors, and what remains to be done. Be
+  dense and factual."; return [one user message "[Conversation so far,
+  compacted]
+<summary>"] + the recent slice.
+- The kept slice must not begin with an orphaned tool result: drop leading tool
+  messages from it before returning.
+- Wire it in: the harness will pass before_turn=lambda msgs:
+  compact(model, msgs, budget_tokens) — for today, demos pass it directly to
+  run_loop.
+
+Write chiikawa/memory.py to this exact contract.
+- MEMORY_FILE = "CHIIKAWA.md".
+- A base system prompt stating: the agent is Chiikawa, a small sharp coding
+  agent working inside one directory with the tools provided; act, don't
+  narrate; inspect before assuming; prefer edit_file for small changes;
+  verify after building by running or re-reading; never repeat a failing call
+  unchanged; when complete, reply with a short summary and stop calling tools.
+- build_system_prompt(workdir, extra=""): the base prompt, plus a line naming
+  the platform and the real working directory, plus — when
+  workdir/CHIIKAWA.md exists — a section "Project memory (CHIIKAWA.md):" with
+  its contents, plus extra when non-empty, joined by blank lines.
+- remember(workdir, note): append "- <note>
+" to CHIIKAWA.md and return
+  "Remembered in CHIIKAWA.md".
+
+Write chiikawa/skills.py to this exact contract.
+- SKILLS_DIR = "skills".
+- catalog(workdir): {name: {"description", "path"}} from every
+  workdir/skills/<name>/SKILL.md, reading a "description:" line from the file's
+  front matter when present.
+- catalog_prompt(workdir): empty string when no skills; otherwise "Skills
+  available (load one with the use_skill tool when relevant):" followed by
+  "- name: description" lines.
+- read_skill(workdir, name): the full SKILL.md text, or "ERROR: no skill named
+  <name>. Available: ..." on a miss.
+
+Verify before finishing, all three: (1) with budget_tokens=1500 wired through
+before_turn, the task "Create five files one.txt through five.txt, each with 20
+lines of the word ping, one write_file at a time with a read back after each;
+then MANIFEST.md listing each file and its line count verified with wc -l"
+completes correctly and compaction observably fired mid-run; (2) remember() a
+fact, then in a completely fresh conversation over the same directory the agent
+answers a question about it from the system prompt alone; (3) a
+skills/brand-voice skill demanding pirate speak changes the voice of a small
+writing task with zero code changes.
