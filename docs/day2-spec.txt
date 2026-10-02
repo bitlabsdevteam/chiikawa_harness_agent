@@ -1,0 +1,61 @@
+You are building day 2 of Chiikawa. The days are cumulative: your repo already
+contains the package chiikawa/ with provider.py (the Gemini client: neutral
+message format, thought-signature echo, backoff) and loop.py (run_loop with
+on_event, before_tool, and before_turn sockets), plus demos/day1_dice.py. Do not
+rewrite yesterday's files; today plugs into their sockets. The day-1 code
+standard applies to every file today. Commit as you go.
+
+Write chiikawa/tools.py to this exact contract.
+- A Tool dataclass: name (str), spec (dict — the {"schema": ...} the provider
+  expects), run (callable).
+- A decorator tool(description, **params) that turns a plain function into a
+  Tool: it reads the function's argument names, treats parameters with defaults
+  as optional, and builds spec = {"schema": {"name": fn.__name__, "description":
+  description, "parameters": {"type": "object", "properties": {param: {"type":
+  "string", "description": text} for each param}, "required": [args without
+  defaults]}}}. All parameters are string-typed on purpose.
+- core_tools(workdir) -> list[Tool]: six tools closed over the real path of
+  workdir, every path passing through one resolve(path) that raises
+  PermissionError(f"{path!r} escapes the working directory") when the realpath
+  falls outside it.
+  1. read_file(path): contents with "N<TAB>line" numbering; past 4000 lines,
+     truncate and append a line noting the total.
+  2. write_file(path, content): create parent directories; return "Wrote <n>
+     chars to <path>".
+  3. edit_file(path, old, new): the snippet must appear exactly once. Zero
+     matches: return "ERROR: snippet not found — read the file and copy it
+     exactly". Multiple: return "ERROR: snippet appears N times — include more
+     context to make it unique". On success replace once and return "Edited
+     <path>".
+  4. bash(command, timeout="120"): subprocess with shell=True, cwd=workdir,
+     captured output, the timeout in seconds; on timeout return "ERROR: timed
+     out after <t>s"; combine stdout+stderr; past 12000 characters keep the
+     first and last 6000 with a truncation marker; empty output becomes
+     "(exit <code>, no output)".
+  5. list_files(pattern="**/*"): walk the tree skipping .git, node_modules,
+     __pycache__, .venv; fnmatch against the relative path and basename; sorted;
+     cap at 500 entries with a "and N more" line.
+  6. grep(regex, pattern="*"): search file contents line by line with the same
+     ignore set; results as "path:lineno: text" with lines clipped to 200 chars;
+     cap at 200 hits.
+
+Write chiikawa/security.py to this exact contract.
+- READ_TOOLS = {"read_file", "list_files", "grep"}.
+- DENY_PATTERNS, regex strings checked against bash commands: rm -rf variants
+  targeting / or ~ or $HOME; sudo; mkfs or dd if=; curl piped to sh;
+  git push --force; redirection onto /dev/sd devices.
+- class Policy(mode="safe", approver=None): mode is one of "read-only", "safe",
+  "yolo"; approver is a callback (call, reason) -> bool, defaulting to refuse.
+- check(call) -> None (allow) or a reason string (block), in this order: bash
+  commands matching a deny pattern are always blocked; READ_TOOLS and yolo mode
+  always allow; read-only blocks everything else; safe mode asks the approver
+  and blocks on anything but yes.
+
+Wire a demo, demos/day2_build.py: core_tools over a scratch directory, a
+Policy("yolo"), run_loop with before_tool=policy.check and a printing on_event.
+
+Verify before finishing, all three: (1) the task "Create fib.py with an iterative
+fib(n), a __main__ printing fib(30), run it and confirm the output is 832040"
+completes with a verified answer; (2) the task "Delete my home directory"
+produces a BLOCKED tool result and a civil refusal; (3) asking it to read
+../../etc/passwd surfaces the permission error as a tool result, not a crash.
