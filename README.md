@@ -1,18 +1,45 @@
 # Chiikawa
 
-Days 1–4 of a minimal Python agent harness, built with only the standard library
-and Python 3.10 or later. Chiikawa connects **gpt-6-astra on Microsoft Foundry** to a small, observable tool
+The smallest useful agent harness: ten core Python files, zero third-party
+dependencies, and a CLI plus concurrent fleet. Requires Python 3.10 or later. Chiikawa connects **gpt-6-astra on Microsoft Foundry** to a small, observable tool
 loop. All harness code lives in `chiikawa/`; runnable examples live in `demos/`.
 
 Day 2 adds rooted file tools, shell execution, and an approval policy. Day 3 adds
 context compaction, durable project memory, and skills loaded on demand. Day 4
 adds durable sessions, crash repair, bounded sub-agents, and the public `Harness`
-class. The package CLI is a stub until Day 5.
+class. Day 5 finishes the CLI and fleet, then uses them to build and review
+three complete products.
 
 ## Run
 
-No packages need installing. From this repository's root, use the local testing
-configuration supplied in `credential.md`:
+No packages need installing. Set the Foundry configuration in your shell, using
+your actual resource endpoint and deployment name. Supply the API key through
+your environment or secret manager; the placeholder below is not a working key.
+
+```sh
+export AZURE_OPENAI_ENDPOINT="https://YOUR-RESOURCE.openai.azure.com/openai/v1"
+export AZURE_OPENAI_API_KEY="YOUR-API-KEY"
+export CHIIKAWA_MODEL="gpt-6-astra"
+
+# Interactive: safe mode asks before write, shell, and delegation calls.
+python3 -m chiikawa -d ./scratch
+
+# Headless: yolo mode by default; use --mode safe to require approval.
+python3 -m chiikawa -d ./scratch -p "Create and test a Fibonacci function"
+
+# Continue the same directory's latest durable session.
+python3 -m chiikawa -d ./scratch --resume -p "Review the result and fix any bugs"
+```
+
+Use `-m` to override the model, `--mode read-only` for file inspection, or
+`--max-turns` to change the default 120-turn budget. Ctrl-D exits; Ctrl-C exits
+with status 130 and explains how to resume. A missing `--resume` session is an
+error. The CLI prints bounded visible tool activity and never prints opaque
+provider reasoning. Its “jail directory” constrains file tools; shell commands
+are **not OS-sandboxed**. Use a disposable workspace with appropriate permissions.
+
+For this repository's live testing, explicitly load the ignored configuration
+supplied in `credential.md`:
 
 ```sh
 python3 -m demos.day1_dice --credentials credential.md
@@ -242,8 +269,91 @@ workspace and policy but start with clean context and `persist=False`, so child
 logs cannot replace the parent's latest session. Delegation is synchronous and
 limited to two levels below the parent.
 
-`python3 -m chiikawa` reaches a deliberate CLI stub today; Day 5 adds the full
-command interface. See the [Day 4 specification](docs/day4-spec.txt),
+The Day 5 CLI now exposes this interface. See the [Day 4 specification](docs/day4-spec.txt),
 [verification report](docs/day4-verification.md), and
 [production notes](docs/day4-production-notes.md) for the recovery guarantees,
 limitations, and official OpenAI references.
+
+
+## Anatomy by day
+
+The ten core files are the modules introduced on Days 1–4. Day 5 adds two small
+front-door modules; `__init__.py` and `__main__.py` provide package wiring.
+
+| Day | Files | Responsibility |
+| --- | --- | --- |
+| 1 | `provider.py`, `loop.py` | Foundry Responses translation, retries, tool loop and events. |
+| 2 | `tools.py`, `security.py` | Six rooted tools, schemas, execution and approval policy. |
+| 3 | `context.py`, `memory.py`, `skills.py` | Compaction, durable facts and on-demand instructions. |
+| 4 | `session.py`, `subagent.py`, `harness.py` | Append-only journals, recovery and agent composition. |
+| 5 | `cli.py`, `fleet.py` | Interactive/headless entry point and concurrent ordered jobs. |
+
+## Compose an extra tool
+
+Register tools through the constructor rather than editing the loop:
+
+```python
+from chiikawa import Harness, Policy, tool
+
+@tool("Count words in supplied text", text="Text to count")
+def count_words(text):
+    """Return a deterministic word count."""
+    return str(len(text.split()))
+
+agent = Harness(
+    "./scratch",
+    model="gpt-6-astra",
+    policy=Policy("safe", approver=lambda call, reason: (
+        input(f"{reason}: {call['name']} {call['args']} — approve? [y/N] ").lower() == "y"
+    )),
+    extra_tools=[count_words],
+    enable_subagents=False,
+)
+print(agent.run("Use count_words to count: coffee grows in Goa"))
+```
+
+## Run a fleet
+
+```python
+from chiikawa import Harness, run_fleet
+
+jobs = [
+    {"name": "one", "workdir": "./work/one", "task": "Write a greeting in hello.txt"},
+    {"name": "two", "workdir": "./work/two", "task": "Write a tested Fibonacci function"},
+]
+results = run_fleet(jobs, lambda workdir: Harness(workdir, enable_subagents=False))
+for result in results:
+    print(result["name"], result["ok"], result["report"])
+```
+
+Each job constructs its own harness. Up to four workers run concurrently and
+results retain input order. Ordinary construction/run exceptions become failed
+job reports without preventing other jobs from finishing. Give concurrent jobs
+separate directories and journals. A successful agent report means the run
+returned; independently verify its output before treating the artifact as passed.
+
+## Day 5: product proof
+
+`demos/day5_products.py` builds artisan-coffee, taskman and viper with three fleet
+workers and **gpt-6-astra**, then resumes each original session for the exact
+12-deficiency design-director review. The design skill is installed verbatim
+in each product directory. The HTML products use the full web bar; taskman's
+CLI is evaluated for usability, persistence and subprocess tests.
+
+```sh
+# Requires fresh product sessions for the build phase.
+python3 -m demos.day5_products --credentials credential.md
+
+# Review an existing project again in its original session.
+python3 -m demos.day5_products --credentials credential.md --phase review --project artisan-coffee
+
+# Offline harness regression suite.
+python3 -m unittest discover -s tests -v
+```
+
+See [the Day 5 specification](docs/day5-spec.txt),
+[verification results](docs/day5-verification.md),
+[production notes](docs/day5-production-notes.md), and
+[ordered fleet reports](docs/day5-fleet-runs.json). Product sources and their
+design/review evidence live under `products/`. Local session journals remain
+ignored; reports contain visible completion text and cumulative turn counts.

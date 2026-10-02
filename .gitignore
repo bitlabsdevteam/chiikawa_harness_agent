@@ -5,3 +5,4 @@ __pycache__/
 .env.*
 credential.md
 .chiikawa/
+.playwright-cli/
