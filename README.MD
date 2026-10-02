@@ -1,11 +1,12 @@
 # Chiikawa
 
-Day 1 of a minimal Python agent harness, built with only the standard library
+Days 1 and 2 of a minimal Python agent harness, built with only the standard library
 and Python 3.10 or later. Chiikawa connects **gpt-6-astra on Microsoft Foundry** to a small, observable tool
 loop. All harness code lives in `chiikawa/`; runnable examples live in `demos/`.
 
-The package initializer is intentionally empty until Day 4. Later lessons add
-tools, security, context, memory, skills, sessions, subagents, and a CLI.
+Day 2 adds rooted file tools, shell execution, and an approval policy. The package
+initializer is intentionally empty until Day 4. Later lessons add context,
+memory, skills, sessions, subagents, and a CLI.
 
 ## Run
 
@@ -84,3 +85,62 @@ turn-limit behavior remains as specified. See
 API references: [Microsoft Foundry Responses API](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?view=foundry-classic),
 [GPT-6 migration](https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra#migration-quickstart),
 and [function calling](https://developers.openai.com/api/docs/guides/function-calling).
+
+## Day 2: tools and policy
+
+Run the Fibonacci build in a new temporary scratch directory:
+
+```sh
+python3 -m demos.day2_build --credentials credential.md
+```
+
+The demo prints its workspace path and keeps the generated files for inspection.
+Use `--workdir /path/to/scratch` to choose a directory, `--prompt "..."` for a
+different task, or `--model` to override the Foundry deployment.
+
+`chiikawa/tools.py` provides a `Tool` dataclass and a `@tool(description, **params)`
+decorator. The decorator builds string-typed argument schemas and marks arguments
+with defaults as optional. `core_tools(workdir)` returns these six tools:
+
+| Tool | Behavior |
+| --- | --- |
+| `read_file` | Number lines; show at most 4,000 and report the total. |
+| `write_file` | Create parent directories and write UTF-8 text. |
+| `edit_file` | Replace a snippet only when it occurs exactly once. |
+| `bash` | Capture stdout and stderr; default to a 120-second timeout; bound output to its first and last 6,000 characters when needed. |
+| `list_files` | Match relative paths or basenames; sort and cap at 500 files. |
+| `grep` | Search matching text files; clip source lines to 200 characters and cap at 200 hits. |
+
+File operations reject paths and symlinks outside the canonical workspace.
+Listing and search skip `.git`, `node_modules`, `__pycache__`, `.venv`, and
+symlinks to files outside the workspace. Shell execution uses the workspace as
+its current directory and requires a POSIX environment; it is not a filesystem
+sandbox. Timed-out commands and their process groups are terminated.
+
+`chiikawa/security.py` plugs directly into `before_tool=policy.check`:
+
+| Mode | Policy |
+| --- | --- |
+| `read-only` | Allow only `read_file`, `list_files`, and `grep`. |
+| `safe` (default) | Allow read tools; require an approver returning `True` for other tools. Without an approver, refuse. |
+| `yolo` | Allow calls except denylisted shell commands. Used by the scratch demo. |
+
+The denylist is checked before every mode and covers recursive forced removal
+of root/home targets, `sudo`, `mkfs`, `dd if=`, `curl` piped to a shell, force
+pushes, and redirection onto `/dev/sd` devices. This regex policy is a teaching
+guardrail, not a complete shell-command security boundary.
+
+Verify Day 2 with:
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 -m demos.verify_day2 --credentials credential.md
+```
+
+The live verifier builds Fibonacci using the real tools and independently runs
+the result. Negative probes use the real policy and file-path resolver; a
+fail-closed test guard prevents unexpected executable tool dispatch during the
+deletion and outside-path cases. It saves visible events and generated source
+in `docs/day2-live-verification.json`. See [Day 2 verification](docs/day2-verification.md)
+and the [renamed assignment](docs/day2-spec.txt). The Day 1 provider, loop, and
+dice demo are unchanged by this addition.
