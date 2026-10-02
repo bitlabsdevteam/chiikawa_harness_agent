@@ -1,7 +1,7 @@
-"""Day 1: translate neutral messages to Gemini using only the standard library.
+"""Day 1: translate neutral messages to Microsoft Foundry's Responses API.
 
-Keep HTTP retries at the transport boundary and provider details out of the
-loop. Preserve tool thought signatures exactly; omit private thought text.
+Use only the standard library. Keep retries at the transport boundary, correlate
+tools by call ID, and replay opaque reasoning items without displaying them.
 """
 
 import json
@@ -11,82 +11,92 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-API_ROOT = "https://generativelanguage.googleapis.com/v1beta/models"
-DEFAULT_MODEL = "gemini-3.1-pro-preview"
+DEFAULT_MODEL = "gpt-6-astra"
 
 
 def api_key():
-    """Read Chiikawa's key, falling back to the conventional Gemini variable."""
-    key = os.environ.get("CHIIKAWA_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    """Read Chiikawa's override or the standard Azure OpenAI API key."""
+    key = os.environ.get("CHIIKAWA_API_KEY") or os.environ.get("AZURE_OPENAI_API_KEY")
     if not key:
-        raise RuntimeError("Set CHIIKAWA_API_KEY or GEMINI_API_KEY to use Gemini.")
+        raise RuntimeError("Set CHIIKAWA_API_KEY or AZURE_OPENAI_API_KEY to use Foundry.")
     return key
 
 
+def api_root():
+    """Normalize an Azure resource endpoint or its OpenAI v1 base URL."""
+    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "").rstrip("/")
+    parsed = urllib.parse.urlsplit(endpoint)
+    if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+            or parsed.password or parsed.query or parsed.fragment
+            or parsed.path not in ("", "/openai/v1")):
+        raise RuntimeError("Set AZURE_OPENAI_ENDPOINT to an HTTPS resource URL or /openai/v1 URL.")
+    return endpoint if parsed.path else endpoint + "/openai/v1"
+
+
 def _to_wire(messages):
-    """Translate the three neutral roles without mutating the stored history."""
-    contents = []
+    """Replay response items and correlate each tool result with its call ID."""
+    items = []
     for message in messages:
         role = message["role"]
-        if role == "user":
-            parts = [{"text": message["text"]}]
-        elif role == "assistant":
-            parts = [{"text": message["text"]}] if message.get("text") else []
+        if role == "assistant" and "provider_output" in message:
+            # Reasoning and function items must travel together on continuation.
+            items.extend(message["provider_output"])
+        elif role in ("user", "assistant"):
+            if message.get("text"):
+                items.append({"role": role, "content": message["text"]})
             for call in message.get("tool_calls", []):
-                part = {"functionCall": {"name": call["name"], "args": call["args"]}}
-                # Gemini 3 requires the original signature on its call part.
-                if call.get("signature") is not None:
-                    part["thoughtSignature"] = call["signature"]
-                parts.append(part)
+                items.append({"type": "function_call", "call_id": call["call_id"],
+                              "name": call["name"], "arguments": json.dumps(call["args"])})
         elif role == "tool":
-            parts = [{"functionResponse": {
-                "name": message["name"], "response": {"result": message["text"]}
-            }}]
+            items.append({"type": "function_call_output", "call_id": message["call_id"],
+                          "output": message["text"]})
         else:
             raise ValueError(f"Unknown message role: {role}")
-        contents.append({"role": "model" if role == "assistant" else "user",
-                         "parts": parts})
-    return contents
+    return items
 
 
 def complete(model, system, messages, tools):
-    """Return visible text, signed tool calls, and input/output token counts."""
-    body = {
-        "systemInstruction": {"parts": [{"text": system}]},
-        "contents": _to_wire(messages),
-        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 65536},
-    }
+    """Return visible text, correlated calls, token usage, and replayable output."""
+    body = {"model": model, "instructions": system, "input": _to_wire(messages),
+            "max_output_tokens": 65536, "store": False,
+            "include": ["reasoning.encrypted_content"]}
+    # Astra reasoning does not accept temperature; use its default reasoning effort.
     if tools:
-        body["tools"] = [{"functionDeclarations": [t["schema"] for t in tools]}]
-    url = f"{API_ROOT}/{urllib.parse.quote(model, safe='')}:generateContent"
-    response = _post(url, body)
-    candidates = response.get("candidates", [])
-    if not candidates:
-        raise RuntimeError("Gemini returned no candidates; check prompt safety or model access.")
+        body["tools"] = [{"type": "function", **t["schema"], "strict": False} for t in tools]
+    response = _post(api_root() + "/responses", body)
+    if response.get("status") != "completed":
+        detail = response.get("error") or response.get("incomplete_details") or {}
+        raise RuntimeError(f"Foundry response {response.get('status', 'missing status')}: {detail}")
     text, calls = [], []
-    for part in candidates[0].get("content", {}).get("parts", []):
-        if "text" in part and not part.get("thought"):
-            text.append(part["text"])
-        if "functionCall" in part:
-            call = part["functionCall"]
-            calls.append({"name": call["name"], "args": call.get("args", {}),
-                          "signature": part.get("thoughtSignature")})
-    usage = response.get("usageMetadata", {})
-    return {"text": "".join(text), "tool_calls": calls,
-            "usage": {"input": usage.get("promptTokenCount", 0),
-                      "output": usage.get("candidatesTokenCount", 0)}}
+    output = response.get("output", [])
+    for item in output:
+        if item["type"] == "message":
+            for part in item.get("content", []):
+                if part["type"] == "output_text":
+                    text.append(part["text"])
+                elif part["type"] == "refusal":
+                    text.append(part["refusal"])
+        elif item["type"] == "function_call":
+            args = json.loads(item["arguments"])
+            if not isinstance(args, dict):
+                raise RuntimeError("Foundry function arguments must be a JSON object.")
+            calls.append({"name": item["name"], "args": args, "call_id": item["call_id"]})
+    if not text and not calls:
+        raise RuntimeError("Foundry returned no visible text or function calls.")
+    usage = response.get("usage") or {}
+    return {"text": "".join(text), "tool_calls": calls, "provider_output": output,
+            "usage": {"input": usage.get("input_tokens", 0),
+                      "output": usage.get("output_tokens", 0)}}
 
 
 def _post(url, body, retries=5):
-    """POST JSON with up to five retries after the initial request.
+    """POST JSON with a 600-second timeout and five transient-failure retries.
 
-    Retry only transient failures, with delays of 2, 4, 8, 16, and 32 seconds.
-    Send credentials in a header so they never appear in request URLs.
+    Back off for 2, 4, 8, 16, and 32 seconds. Send the key only in a header.
     """
     request = urllib.request.Request(
         url, data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json", "x-goog-api-key": api_key()},
-        method="POST",
+        headers={"Content-Type": "application/json", "api-key": api_key()}, method="POST",
     )
     for attempt in range(retries + 1):
         try:
@@ -96,8 +106,8 @@ def _post(url, body, retries=5):
             detail = exc.read().decode("utf-8", errors="replace")[:400]
             exc.close()
             if exc.code not in (429, 500, 502, 503) or attempt == retries:
-                raise RuntimeError(f"Gemini HTTP {exc.code}: {detail}") from exc
+                raise RuntimeError(f"Foundry HTTP {exc.code}: {detail}") from exc
         except (urllib.error.URLError, TimeoutError) as exc:
             if attempt == retries:
-                raise RuntimeError(f"Gemini request failed: {exc}") from exc
+                raise RuntimeError(f"Foundry request failed: {exc}") from exc
         time.sleep(2**attempt * 2)

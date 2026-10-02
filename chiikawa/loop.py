@@ -28,6 +28,8 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
         response = provider.complete(model, system, messages, available_tools)
         message = {"role": "assistant", "text": response["text"],
                    "tool_calls": response["tool_calls"]}
+        if "provider_output" in response:
+            message["provider_output"] = response["provider_output"]
         messages.append(message)
         on_event("assistant", message)
         return message
@@ -53,6 +55,8 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
                     result = f"ERROR: {type(exc).__name__}: {exc}"
             tool_message = {"role": "tool", "name": call["name"],
                             "text": str(result)}
+            if "call_id" in call:
+                tool_message["call_id"] = call["call_id"]
             messages.append(tool_message)
             on_event("tool_end", tool_message)
 

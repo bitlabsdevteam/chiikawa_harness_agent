@@ -1,10 +1,11 @@
-"""Day 1: verify the real Gemini dice and coffee flows and save their transcripts.
+"""Day 1: verify the real Foundry dice and coffee flows and save their transcripts.
 
 This command requires credentials and makes live API calls. Only write a passing
 report after both acceptance checks succeed; mocks belong in the offline tests.
 """
 
 import ast
+import argparse
 import contextlib
 import io
 import json
@@ -12,11 +13,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from chiikawa.loop import run_loop
-from chiikawa.provider import DEFAULT_MODEL, api_key
-from demos.day1_dice import RollDice, TASK, before_tool, on_event
+from chiikawa.provider import DEFAULT_MODEL, api_key, api_root
+from demos.day1_dice import RollDice, TASK, before_tool, load_credentials, on_event
 
 
-def verify():
+def verify(model=DEFAULT_MODEL):
     """Run both specified prompts, validate history, and persist live evidence."""
     api_key()
     reports = []
@@ -26,7 +27,7 @@ def verify():
         with contextlib.redirect_stdout(transcript):
             print(f"user: {prompt}")
             answer = run_loop(
-                DEFAULT_MODEL, "You are Chiikawa, a helpful assistant. Use tools when needed.",
+                model, "You are Chiikawa, a helpful assistant. Use tools when needed.",
                 messages, {"roll_dice": RollDice()}, on_event, before_tool,
             )
         print(transcript.getvalue(), end="", flush=True)
@@ -50,10 +51,15 @@ def verify():
     destination = Path("docs/day1-live-verification.json")
     destination.write_text(json.dumps({
         "verified_at": datetime.now(timezone.utc).isoformat(),
-        "model": DEFAULT_MODEL, "checks": reports,
+        "model": model, "endpoint": api_root(), "checks": reports,
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Both live checks passed. Evidence: {destination}")
 
 
 if __name__ == "__main__":
-    verify()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--credentials", help="Local endpoint/model/API_KEY file")
+    parser.add_argument("--model", help="Foundry deployment name")
+    args = parser.parse_args()
+    model = load_credentials(args.credentials) if args.credentials else DEFAULT_MODEL
+    verify(args.model or model)
