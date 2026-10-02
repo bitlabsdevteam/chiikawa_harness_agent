@@ -143,7 +143,7 @@ File operations reject paths and symlinks outside the canonical workspace.
 Listing and search skip `.git`, `node_modules`, `__pycache__`, `.venv`, and
 symlinks to files outside the workspace. Shell execution uses the workspace as
 its current directory and requires a POSIX environment; it is not a filesystem
-sandbox. Timed-out commands and their process groups are terminated.
+sandbox. Timed-out or interrupted commands and their process groups are terminated.
 
 `chiikawa/security.py` plugs directly into `before_tool=policy.check`:
 

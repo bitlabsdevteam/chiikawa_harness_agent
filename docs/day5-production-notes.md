@@ -21,7 +21,9 @@ inputs and outputs may contain sensitive data. Credentials are loaded only by
 the explicitly selected demo loader and are not included in product prompts.
 Opaque provider reasoning is never printed.
 
-Ctrl-C exits with status 130 and points to resume. Persistence occurs before
+Ctrl-C stops the active shell process group, exits with status 130 and points to
+resume. A real SIGINT regression verifies that a delayed child write cannot
+survive interruption. Persistence occurs before
 tool dispatch, and recovery repairs incomplete call/result pairs. A journal
 cannot roll back side effects; inspect interrupted operations before repeating
 them. Missing resume sessions fail instead of silently starting a new task.
@@ -56,8 +58,9 @@ ordered return despite reversed completion, factory and run exception isolation,
 CLI policy defaults, resume, approval and interruption handling. Mocked provider
 tests do not substitute for the live Foundry product runs.
 
-The ten core modules remain unchanged by the Day 5 front door. New composition
-stays in the CLI, fleet and product runner. OpenAI's
+New composition stays in the CLI, fleet and product runner. The shell tool also
+receives targeted Ctrl-C process-group cleanup so terminal interruption cannot
+leave an active command behind. OpenAI's
 [function calling guide](https://developers.openai.com/api/docs/guides/function-calling)
 and [conversation state guide](https://developers.openai.com/api/docs/guides/conversation-state)
 underpin the existing tool-result protocol and explicit state ownership.

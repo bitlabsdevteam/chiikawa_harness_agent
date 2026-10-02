@@ -101,7 +101,7 @@ def core_tools(workdir) -> list[Tool]:
 
     @tool("Run a shell command in the workspace", command="Shell command", timeout="Timeout in seconds")
     def bash(command, timeout="120"):
-        """Capture output, bound its size, and stop the process group on timeout."""
+        """Capture bounded output and stop the process group on timeout or interrupt."""
         seconds = float(timeout)
         with subprocess.Popen(command, shell=True, cwd=root, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, text=True, errors="replace",
@@ -113,6 +113,15 @@ def core_tools(workdir) -> list[Tool]:
                 os.killpg(process.pid, signal.SIGKILL)
                 process.communicate()
                 return f"ERROR: timed out after {timeout}s"
+            except KeyboardInterrupt:
+                # The command has its own session, so terminal SIGINT misses it.
+                # Stop its descendants before the CLI exits and offers resume.
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                process.communicate()
+                raise
         output = stdout + stderr
         if len(output) > 12000:
             output = output[:6000] + "\n... output truncated ...\n" + output[-6000:]
