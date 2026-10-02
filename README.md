@@ -78,7 +78,7 @@ continuation. The demo prints only visible text and tool activity. Incomplete,
 failed, and empty responses raise errors; refusals are displayed as text.
 
 HTTP uses a 600-second timeout and up to five retries after the
-initial attempt for 429/500/502/503, URL failures, and timeouts.
+initial attempt for 429/500/502/503, URL failures, connection resets, and timeouts.
 
 `chiikawa/loop.py` records replies and sequential tool results in the caller's
 message list. Tools expose `.spec` and `.run(**args)`. `before_tool` permits a

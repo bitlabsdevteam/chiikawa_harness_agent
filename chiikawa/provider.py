@@ -107,7 +107,7 @@ def _post(url, body, retries=5):
             exc.close()
             if exc.code not in (429, 500, 502, 503) or attempt == retries:
                 raise RuntimeError(f"Foundry HTTP {exc.code}: {detail}") from exc
-        except (urllib.error.URLError, TimeoutError) as exc:
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
             if attempt == retries:
                 raise RuntimeError(f"Foundry request failed: {exc}") from exc
         time.sleep(2**attempt * 2)

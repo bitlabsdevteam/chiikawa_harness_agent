@@ -6,6 +6,7 @@ recorded separately in docs/day5-browser-verification.json after UI testing.
 
 import ast
 from collections import Counter
+import hashlib
 from html.parser import HTMLParser
 import json
 from pathlib import Path
@@ -42,12 +43,16 @@ def verify(root):
         checks = {"required_files": all((project / path).is_file() for path in required)}
         skill = project / "skills/design-engineering/SKILL.md"
         checks["verbatim_skill_bar"] = skill.is_file() and bar in skill.read_text()
+        review = project / "REVIEW.md"
+        numbers = re.findall(r"(?m)^(?:#{1,6}\s*)?(\d+)[.)]\s", review.read_text()) if review.exists() else []
+        checks["twelve_review_items"] = numbers == [str(n) for n in range(1, 12 + 1)]
         path = session.latest(project)
         messages = session.load(path) if path else []
         prompts = [message.get("text") for message in messages if message["role"] == "user"]
         checks["same_session_build_and_review"] = TASKS[name] in prompts and REVIEW in prompts
         checks["one_session"] = len(list((project / ".chiikawa/sessions").glob("*.jsonl"))) == 1
-        evidence = {}
+        source = project / ("taskman.py" if name == "taskman" else "index.html")
+        evidence = {"source_sha256": hashlib.sha256(source.read_bytes()).hexdigest()} if source.exists() else {}
         if name == "taskman" and checks["required_files"]:
             tree = ast.parse((project / "test_taskman.py").read_text())
             count = sum(isinstance(node, ast.FunctionDef) and node.name.startswith("test_")

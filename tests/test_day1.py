@@ -141,14 +141,15 @@ class ProviderTests(unittest.TestCase):
 
     def test_transient_retries_and_transport_contract(self):
         """Retry all specified HTTP/network failures with the expected backoff."""
-        for failure in (429, 500, 502, 503, "network", "timeout"):
+        for failure in (429, 500, 502, 503, "network", "timeout", "reset"):
             with self.subTest(failure=failure):
                 if isinstance(failure, int):
                     error = urllib.error.HTTPError("https://example.com", failure, "bad", {},
                                                    io.BytesIO(b"temporary"))
                 else:
-                    error = (TimeoutError("slow") if failure == "timeout"
-                             else urllib.error.URLError("offline"))
+                    error = (TimeoutError("slow") if failure == "timeout" else
+                             ConnectionResetError("peer reset") if failure == "reset" else
+                             urllib.error.URLError("offline"))
                 with patch.object(provider, "api_key", return_value="test-key"), \
                      patch.object(provider.time, "sleep") as sleep, \
                      patch.object(provider.urllib.request, "urlopen", side_effect=[
@@ -162,6 +163,19 @@ class ProviderTests(unittest.TestCase):
                 self.assertEqual(request.get_header("Api-key"), "test-key")
                 self.assertEqual(json.loads(request.data), {"hello": "world"})
                 self.assertEqual(opening.call_args.kwargs, {"timeout": 600})
+
+    def test_connection_reset_while_reading_response_retries(self):
+        """A peer can reset an established connection before its JSON body arrives."""
+        broken = io.BytesIO()
+        broken.read = Mock(side_effect=ConnectionResetError("peer reset"))
+        with patch.object(provider, "api_key", return_value="test-key"), \
+             patch.object(provider.time, "sleep") as sleep, \
+             patch.object(provider.urllib.request, "urlopen", side_effect=[
+                 broken, io.BytesIO(b'{"ok": true}')]) as opening:
+            self.assertEqual(provider._post("https://example.com", {}), {"ok": True})
+        self.assertEqual(opening.call_count, 2)
+        self.assertTrue(broken.closed)
+        sleep.assert_called_once_with(2)
 
     def test_nonretryable_error_truncation(self):
         """Surface status and exactly the first 400 error-body characters."""

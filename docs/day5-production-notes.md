@@ -65,3 +65,17 @@ leave an active command behind. OpenAI's
 [function calling guide](https://developers.openai.com/api/docs/guides/function-calling)
 and [conversation state guide](https://developers.openai.com/api/docs/guides/conversation-state)
 underpin the existing tool-result protocol and explicit state ownership.
+
+## Observed recovery during the product run
+
+The first review fleet completed artisan-coffee while taskman and viper returned
+`ConnectionResetError: [Errno 54] Connection reset by peer`. Their independent
+failures did not abort the coffee job. Follow-up fleet jobs resume only those two
+original journals and finish their existing twelve-item reviews. Both the failed
+phase and the recovery remain in the run report.
+
+The provider now retries `ConnectionError` using its existing bounded backoff,
+including a reset while reading an established response. A regression test
+checks that the failed response is closed and a subsequent response succeeds.
+This affects model requests only; it does not replay previously dispatched
+local tool side effects.
