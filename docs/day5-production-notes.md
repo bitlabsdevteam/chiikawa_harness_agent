@@ -15,8 +15,9 @@ tool is not a process sandbox. A directory resolver and command denylist cannot
 replace OS/container isolation or least-privilege credentials. See OpenAI's
 [agent safety guidance](https://developers.openai.com/api/docs/guides/agent-builder-safety).
 
-Tool calls have bounded one-line argument summaries, and results display only
-their first line. This reduces terminal noise but is not secret redaction: tool
+Routine event output uses bounded one-line argument summaries and first-line
+results. Approval prompts show complete arguments so the reviewer can see the
+entire operation, including any command tail. This reduces terminal noise but is not secret redaction: tool
 inputs and outputs may contain sensitive data. Credentials are loaded only by
 the explicitly selected demo loader and are not included in product prompts.
 Opaque provider reasoning is never printed.

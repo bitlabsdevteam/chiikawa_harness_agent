@@ -78,6 +78,10 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(cli.approve({"name": "write_file", "args": {}}, "write"), allowed)
         with patch("builtins.input", side_effect=EOFError), contextlib.redirect_stdout(io.StringIO()):
             self.assertFalse(cli.approve({"name": "bash", "args": {}}, "run"))
+        command = "echo " + "x" * 300 + " ; echo review-this-tail"
+        with patch("builtins.input", return_value="n"), contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertFalse(cli.approve({"name": "bash", "args": {"command": command}}, "run"))
+        self.assertIn(command, output.getvalue())
 
     def test_event_output_is_bounded_and_excludes_provider_state(self):
         """Print one call line and only the first result line, with dimming on terminals."""

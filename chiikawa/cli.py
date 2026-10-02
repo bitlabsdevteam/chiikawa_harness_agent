@@ -33,7 +33,8 @@ def print_event(kind, payload):
 
 def approve(call, reason):
     """Show the requested operation and require an explicit yes from the user."""
-    print(f"{reason}\n{_call_text(call)}", flush=True)
+    arguments = json.dumps(call.get("args", {}), ensure_ascii=False)
+    print(f"{reason}\n{call['name']} {arguments}", flush=True)
     try:
         return input(f"approve {call['name']}? [y/N] ").strip().lower() == "y"
     except EOFError:
