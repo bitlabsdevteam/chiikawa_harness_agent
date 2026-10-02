@@ -1,9 +1,9 @@
-"""Day 4: route module execution to the CLI boundary without duplicating setup.
+"""Day 5: route module execution to the CLI and preserve its process exit status.
 
-The command-line interface is intentionally a stub until Day 5.
+Keep argument parsing and interactive behavior in the dedicated CLI module.
 """
 
 from .cli import main
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

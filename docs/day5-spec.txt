@@ -1,0 +1,64 @@
+You are building day 5 of Chiikawa, the final day. Cumulative state: the
+package is complete except its front door and fleet: provider.py, loop.py,
+tools.py, security.py, context.py, memory.py, skills.py, session.py,
+subagent.py, harness.py, __init__.py, __main__.py (stub). Today finishes the
+product and proves it by building real software with it. The day-1 code
+standard applies. Commit as you go.
+
+Write chiikawa/cli.py to this exact contract.
+- main(argv=None): argparse with -p/--prompt (headless task), -d/--workdir
+  (default "."), -m/--model, --mode in {safe, yolo, read-only} (default: safe
+  interactively, yolo when -p is given), --resume, --max-turns (default 120).
+- An event printer: assistant text plainly; tool calls as one line with the
+  tool name and clipped arguments; the first line of each result dimmed under
+  it. An approver that shows the call and asks "approve ...? [y/N]".
+- Headless: build the Harness, optionally resume, run the prompt, exit 0.
+- Interactive: a banner naming the model, mode, and jail directory, then a
+  prompt loop; Ctrl-D exits; Ctrl-C interrupts a run, prints that the session
+  log is safe and --resume continues it.
+- Point chiikawa/__main__.py at cli.main so python3 -m chiikawa works.
+
+Write chiikawa/fleet.py to this exact contract.
+- run_fleet(jobs, make_harness, max_workers=4): jobs are [{name, workdir,
+  task}]. ThreadPoolExecutor; each job builds make_harness(workdir) and runs
+  its task; exceptions become {"name", "ok": False, "report": "<type>:
+  <message>"}; successes {"name", "ok": True, "report": final text}; results
+  return in input order. Export run_fleet from __init__.py.
+
+Write a README.md: what Chiikawa is (the smallest agent harness; ten files,
+zero dependencies), how to run it (env var, the three CLI forms), the
+day-by-day anatomy table, and a composition example registering one extra tool.
+
+Now prove the harness by building products with it — the same way the
+reference build shipped 25 projects. Create skills/design-engineering/SKILL.md
+in each project workdir with this quality bar (verbatim): a real design system
+as CSS custom properties; at least 9 distinct sections for a landing page; at
+least 1,200 words of real copy, no lorem ipsum; at least 4 hand-drawn inline
+SVG illustrations, one being a product artifact in the hero; at least 3 working
+interactive behaviors; responsive at 360, 768, and 1280; semantic HTML with
+focus states; a self-review pass before finishing that counts sections, words,
+SVGs, and interactions against these minimums and fixes any shortfall.
+
+Then run these through run_fleet with your harness, one fresh directory each,
+in two phases per project — first the build, then a second run in the same
+session: "Review every file you produced against the skill bar as a demanding
+design director; list 12 concrete deficiencies; fix them all; verify again."
+1. artisan-coffee: a self-contained index.html for a specialty coffee roaster
+   in Goa — sticky nav, hero with a drawn product artifact, six origin cards
+   with prices, a three-tier subscription table with a working monthly/annual
+   toggle, brew-guide tabs, an FAQ accordion, a dark-mode toggle persisted to
+   localStorage.
+2. taskman: a python CLI task manager — argparse subcommands add, list, done,
+   rm, stats; JSON persistence; aligned table output; a unittest suite of 10+
+   cases run via subprocess against a temp store; all tests green.
+3. viper: a canvas snake game in one index.html — grid movement on
+   requestAnimationFrame, food, speed-up every 5 foods, score, pause, restart,
+   high score in localStorage.
+
+Verification, mechanically: required files exist; python3 tests pass for
+taskman; greps confirm localStorage and an accordion in artisan-coffee and
+requestAnimationFrame in viper; word count of visible text in artisan-coffee
+exceeds 1,200. Finish with a results table: project, pass/fail, turns, and one
+line on contents. Your harness should clear the same bar the reference build
+cleared; if a project falls short, run one more review pass rather than
+lowering the bar.
