@@ -1,0 +1,63 @@
+You are building day 4 of Chiikawa. Cumulative state: chiikawa/ contains
+provider.py, loop.py, tools.py, security.py, context.py, memory.py, skills.py.
+Today adds the spine — durable sessions, crash repair, sub-agents — and the
+Harness class that composes the whole week. Do not rewrite earlier files.
+The day-1 code standard applies. Commit as you go.
+
+Write chiikawa/session.py to this exact contract.
+- SESSION_DIR = ".chiikawa/sessions".
+- new_session(workdir, label="session"): create the directory, slugify the label
+  to alphanumerics and dashes clipped to 40 chars, return the path
+  <workdir>/.chiikawa/sessions/<unix-timestamp>-<slug>.jsonl.
+- append(path, message): one json.dumps line per message, ensure_ascii False.
+- load(path): parse line by line; a line that fails to parse is a torn tail —
+  stop there, keep everything before it; then run the repair below and return
+  the list.
+- latest(workdir): newest .jsonl in the session dir, or None.
+- The repair: find the last assistant message; count the tool messages after
+  it; for each of its tool_calls beyond that count, append {"role": "tool",
+  "name": call name, "text": "Interrupted before this ran (process
+  restarted)."}. The result always satisfies the call/response pairing rule.
+
+Write chiikawa/subagent.py to this exact contract.
+- subagent_tool(make_harness, depth=0, max_depth=2) -> Tool, built with the
+  @tool decorator: name spawn_agent, description telling the model to delegate
+  a self-contained task to a fresh sub-agent with its own clean context, that
+  the child cannot see this conversation, and that it returns the child's final
+  report; one parameter, task. At or past max_depth it returns "ERROR: sub-agent
+  depth limit reached; do this task yourself". Otherwise make_harness(depth+1)
+  and return child.run(task).
+
+Write chiikawa/harness.py to this exact contract.
+- class Harness(workdir=".", model=None, policy=None, extra_tools=None,
+  system_extra="", on_event=None, budget_tokens=600_000, max_turns=120,
+  session_path=None, enable_subagents=True, persist=True, _depth=0).
+- Construction: realpath and create the workdir; model defaults to the
+  CHIIKAWA_MODEL env var then provider.DEFAULT_MODEL; policy defaults to
+  Policy("yolo"); tools = core_tools(workdir) as a name-keyed dict; add a
+  remember tool wrapping memory.remember; when skills exist, add use_skill;
+  when enable_subagents, add spawn_agent via a make_child that constructs a
+  Harness over the same workdir and policy with persist=False (children are
+  ephemeral — a child session log must never hijack --resume); merge
+  extra_tools; system prompt = memory.build_system_prompt(workdir, skills
+  catalog_prompt + system_extra).
+- resume(path=None): load session.latest when no path given; set messages and
+  session_path; return True when messages loaded.
+- run(task) -> str: when persist and no session_path yet, create one from the
+  first 32 chars of the task. Append and record the user message. Record every
+  new message as it lands (clamp the recorded index if compaction shrank the
+  list). Call loop.run_loop with before_tool=policy.check and
+  before_turn=compaction against budget_tokens; return the final text.
+
+Write chiikawa/__init__.py exporting Harness, Policy, Tool, tool — and
+chiikawa/__main__.py deferring to a cli main() (a stub today; day 5 completes
+it). Update .gitignore with .chiikawa/.
+
+Verify before finishing, both: (1) start "Create part1.txt through part5.txt one
+at a time, then SUMMARY.md describing each", kill -9 the process partway, run
+again in the same directory calling resume() then run("continue the task") —
+the transcript shows the interruption notice and all six files exist at the end;
+(2) "Use spawn_agent twice: delegate writing utils.py with a slugify(text)
+function to one child, and test_utils.py with five asserts to another; then run
+python3 test_utils.py yourself and report" — the parent runs the tests itself,
+and .chiikawa/sessions contains exactly one session file.
