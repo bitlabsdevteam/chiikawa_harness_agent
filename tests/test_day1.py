@@ -154,6 +154,7 @@ class LoopTests(unittest.TestCase):
         stream = io.StringIO()
 
         def observe(kind, payload):
+            """Capture event order while exercising the demo's transcript printer."""
             events.append(kind)
             on_event(kind, payload)
 
@@ -212,6 +213,7 @@ class LoopTests(unittest.TestCase):
         tool = SimpleNamespace(spec=RollDice.spec, run=Mock(side_effect=["one", "two"]))
 
         def compact(history):
+            """Capture pre-compaction history and retain only its newest message."""
             snapshots.append(copy.deepcopy(history))
             return history[-1:]
 
