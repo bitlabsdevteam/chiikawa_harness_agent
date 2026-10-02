@@ -1,12 +1,13 @@
 # Chiikawa
 
-Days 1 and 2 of a minimal Python agent harness, built with only the standard library
+Days 1–3 of a minimal Python agent harness, built with only the standard library
 and Python 3.10 or later. Chiikawa connects **gpt-6-astra on Microsoft Foundry** to a small, observable tool
 loop. All harness code lives in `chiikawa/`; runnable examples live in `demos/`.
 
-Day 2 adds rooted file tools, shell execution, and an approval policy. The package
-initializer is intentionally empty until Day 4. Later lessons add context,
-memory, skills, sessions, subagents, and a CLI.
+Day 2 adds rooted file tools, shell execution, and an approval policy. Day 3 adds
+context compaction, durable project memory, and skills loaded on demand. The
+package initializer is intentionally empty until Day 4. Later lessons add
+sessions, subagents, and a CLI.
 
 ## Run
 
@@ -144,3 +145,50 @@ deletion and outside-path cases. It saves visible events and generated source
 in `docs/day2-live-verification.json`. See [Day 2 verification](docs/day2-verification.md)
 and the [renamed assignment](docs/day2-spec.txt). The Day 1 provider, loop, and
 dice demo are unchanged by this addition.
+
+## Day 3: context, memory, and skills
+
+Run the five-file task with compaction at the requested 1,500-token trigger:
+
+```sh
+python3 -m demos.day3_context --credentials credential.md --budget-tokens 1500
+python3 -m demos.verify_day3 --credentials credential.md
+```
+
+The demo creates a scratch directory, prints compaction measurements, and keeps
+its generated files for review. `--workdir`, `--prompt`, and `--model` work as in
+Day 2. It uses the existing `before_turn` and `before_tool` hooks without changing
+earlier modules.
+
+- `context.compact(model, messages, budget_tokens)` estimates history size,
+  summarizes the older prefix in one tool-free model call, and retains the last
+  six messages. Leading tool results are included in the summary to avoid
+  orphaned calls. Recent opaque provider output remains intact. The token
+  estimate is a trigger, not a hard ceiling or an exact tokenizer.
+- `memory.remember(workdir, note)` appends a fact to **CHIIKAWA.md** under a POSIX
+  file lock and syncs it to disk. `build_system_prompt` reads current memory
+  into each new conversation, alongside base behavior and platform/workspace
+  information. Memory must contain trusted project facts, not credentials or
+  arbitrary untrusted content.
+- `skills.catalog(workdir)` discovers `skills/<name>/SKILL.md` metadata.
+  `catalog_prompt` advertises names/descriptions; `read_skill` returns the full
+  instructions only when the demo's `use_skill` tool is called. Exact-name
+  lookup and workspace containment prevent outside-path skill loading.
+
+To add a local skill, create `skills/brand-voice/SKILL.md` inside the selected
+scratch directory. The fixture at
+`demos/fixtures/day3/skills/brand-voice/SKILL.md` demonstrates a voice change
+through instructions alone. To reuse memory or skills across separate demo
+invocations, pass the same `--workdir` each time.
+
+The demo also exposes `remember` as a tool. Its scratch default is yolo; callers
+of `run_task` can supply a `Policy` with their desired approval behavior. New
+tools such as `use_skill` require approval in the existing safe policy because
+they are not in its original read-tool allowlist.
+
+See [Day 3 verification](docs/day3-verification.md) for the live results,
+[design decisions and production boundaries](docs/day3-production-notes.md)
+for the OpenAI guidance and limits, and the [renamed assignment](docs/day3-spec.txt)
+for the exact contract. The live verifier records ordered tool calls, both
+compactions, file contents, independent `wc -l` output, fresh-process recall,
+and the skill comparison in `docs/day3-live-verification.json`.

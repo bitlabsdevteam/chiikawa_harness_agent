@@ -256,6 +256,35 @@ class SkillTests(unittest.TestCase):
 class WiringTests(unittest.TestCase):
     """Exercise the Day 3 sockets using the existing run_loop implementation."""
 
+    def test_real_before_turn_compacts_history_in_place(self):
+        """Use the actual compact hook and tools; distinguish summary and task calls."""
+        with tempfile.TemporaryDirectory() as directory:
+            (Path(directory) / "a.txt").write_text("data")
+            task_calls, summaries, identities = [], [], []
+            events = Mock()
+
+            def complete(model, system, messages, tools):
+                """Emulate four tool turns followed by one summary and a final answer."""
+                if system == context.SUMMARY_SYSTEM:
+                    summaries.append(copy.deepcopy(messages))
+                    self.assertEqual(tools, [])
+                    return {"text": "Read a.txt four times. Finish now.", "tool_calls": []}
+                task_calls.append(copy.deepcopy(messages))
+                identities.append(id(messages))
+                return ({"text": "", "tool_calls": [{"name": "read_file", "args": {"path": "a.txt"},
+                          "call_id": f"call_{len(task_calls)}"}]} if len(task_calls) <= 4 else
+                        {"text": "Done.", "tool_calls": []})
+
+            with patch.object(provider, "complete", side_effect=complete):
+                answer, messages = run_task("model", directory, "Read the file", budget_tokens=0, on_event=events)
+            self.assertEqual(answer, "Done.")
+            self.assertEqual(len(summaries), 1)
+            self.assertEqual(len(task_calls), 5)
+            self.assertEqual(set(identities), {id(messages)})
+            self.assertTrue(task_calls[-1][0]["text"].startswith("[Conversation so far, compacted]"))
+            self.assertEqual(task_calls[-1][1]["role"], "assistant")
+            self.assertEqual(sum(event.args[0] == "compaction" for event in events.call_args_list), 1)
+
     def test_skill_is_loaded_through_a_tool_result(self):
         """The model sees catalog metadata first and receives the body only after a call."""
         with tempfile.TemporaryDirectory() as directory:
