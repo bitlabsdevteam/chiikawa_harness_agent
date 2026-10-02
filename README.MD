@@ -1,13 +1,13 @@
 # Chiikawa
 
-Days 1–3 of a minimal Python agent harness, built with only the standard library
+Days 1–4 of a minimal Python agent harness, built with only the standard library
 and Python 3.10 or later. Chiikawa connects **gpt-6-astra on Microsoft Foundry** to a small, observable tool
 loop. All harness code lives in `chiikawa/`; runnable examples live in `demos/`.
 
 Day 2 adds rooted file tools, shell execution, and an approval policy. Day 3 adds
-context compaction, durable project memory, and skills loaded on demand. The
-package initializer is intentionally empty until Day 4. Later lessons add
-sessions, subagents, and a CLI.
+context compaction, durable project memory, and skills loaded on demand. Day 4
+adds durable sessions, crash repair, bounded sub-agents, and the public `Harness`
+class. The package CLI is a stub until Day 5.
 
 ## Run
 
@@ -192,3 +192,58 @@ for the OpenAI guidance and limits, and the [renamed assignment](docs/day3-spec.
 for the exact contract. The live verifier records ordered tool calls, both
 compactions, file contents, independent `wc -l` output, fresh-process recall,
 and the skill comparison in `docs/day3-live-verification.json`.
+
+## Day 4: the public Harness
+
+With `AZURE_OPENAI_ENDPOINT` and an API key set in the environment:
+
+```python
+from chiikawa import Harness, Policy, Tool, tool
+
+agent = Harness("./scratch", model="gpt-6-astra")
+answer = agent.run("Create part1.txt through part5.txt one at a time, then SUMMARY.md describing each")
+print(answer)
+print(agent.session_path)
+
+restarted = Harness("./scratch", model="gpt-6-astra")
+if restarted.resume():
+    print(restarted.run("continue the task"))
+```
+
+`Harness` creates and canonicalizes its workspace. Model selection is explicit
+`model`, then `CHIIKAWA_MODEL`, then the provider default (`gpt-6-astra`). The
+default policy is `Policy("yolo")`, as required by the exercise. Supply
+`Policy("safe", approver=...)` for explicit approval of writes and delegation.
+It combines core tools, `remember`, conditional `use_skill`, and optional
+`spawn_agent`; `extra_tools` can add or override tools.
+
+The constructor also accepts `system_extra`, `on_event`, `budget_tokens`
+(default 600,000), `max_turns` (120), `session_path`, `enable_subagents`, and
+`persist`. Passing a session path selects the journal; call `resume(path)` to
+load its prior conversation. Only one active run should own a session at a time.
+
+Using the local credentials file, run the daily demo and resume it later:
+
+```sh
+python3 -m demos.day4_harness --credentials credential.md --workdir /path/to/scratch
+python3 -m demos.day4_harness --credentials credential.md --workdir /path/to/scratch --resume
+python3 -m demos.verify_day4 --credentials credential.md
+```
+
+Sessions live in `.chiikawa/sessions/<timestamp>-<label>.jsonl`, which is ignored
+by Git. Messages are synced as they arrive. `resume()` selects the most recently
+modified session, tolerates a torn tail, and inserts missing tool results with
+their original call IDs. Interrupted operations may already have had side
+effects: inspect actual state before repeating them.
+
+Compaction changes the in-memory view while the journal retains the full event
+history. Resuming does not duplicate old messages. Child harnesses share the
+workspace and policy but start with clean context and `persist=False`, so child
+logs cannot replace the parent's latest session. Delegation is synchronous and
+limited to two levels below the parent.
+
+`python3 -m chiikawa` reaches a deliberate CLI stub today; Day 5 adds the full
+command interface. See the [Day 4 specification](docs/day4-spec.txt),
+[verification report](docs/day4-verification.md), and
+[production notes](docs/day4-production-notes.md) for the recovery guarantees,
+limitations, and official OpenAI references.

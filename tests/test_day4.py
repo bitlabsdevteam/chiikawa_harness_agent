@@ -10,6 +10,7 @@ import os
 import re
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -143,6 +144,14 @@ class SessionTests(WorkspaceCase):
                 session.new_session(self.root)
             with self.assertRaises(PermissionError):
                 session.latest(self.root)
+
+    def test_concurrent_record_appends_do_not_interleave(self):
+        """File locks preserve complete JSONL records from independent appenders."""
+        path = session.new_session(self.root)
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            list(pool.map(lambda i: session.append(path, {"role": "user", "text": f"note-{i}"}), range(24)))
+        self.assertCountEqual([message["text"] for message in session.load(path)],
+                              [f"note-{i}" for i in range(24)])
 
 
 class SubagentTests(unittest.TestCase):
@@ -343,6 +352,17 @@ class HarnessTests(WorkspaceCase):
         with patch.object(provider, "complete", return_value=reply()):
             harness.run("task")
         self.assertIsNone(harness.session_path)
+        self.assertFalse((self.root / session.SESSION_DIR).exists())
+
+    def test_child_depth_and_custom_session_path(self):
+        """Use a supplied journal path and enforce the child ceiling in a real Harness."""
+        path = self.root / "custom.jsonl"
+        harness = Harness(self.root, session_path=path, _depth=2)
+        self.assertEqual(harness.tools["spawn_agent"].run(task="delegate"),
+                         "ERROR: sub-agent depth limit reached; do this task yourself")
+        with patch.object(provider, "complete", return_value=reply()):
+            harness.run("task")
+        self.assertEqual(len(session.load(path)), 2)
         self.assertFalse((self.root / session.SESSION_DIR).exists())
 
 
