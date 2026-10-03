@@ -13,6 +13,8 @@ import urllib.request
 
 DEFAULT_MODEL = "gpt-6-astra"
 MAX_OUTPUT_TOKENS = 65_536
+NAME = "foundry"
+MODEL_ENV = "CHIIKAWA_MODEL"
 
 
 def api_key():
@@ -38,6 +40,8 @@ def _to_wire(messages):
     """Replay response items and correlate each tool result with its call ID."""
     items = []
     for message in messages:
+        if "openrouter_message" in message:
+            raise ValueError("OpenRouter replay data cannot be sent to Foundry; start a new session.")
         role = message["role"]
         if role == "assistant" and "provider_output" in message:
             # Reasoning and function items must travel together on continuation.
@@ -56,10 +60,11 @@ def _to_wire(messages):
     return items
 
 
-def complete(model, system, messages, tools, reasoning_summary=False):
+def complete(model, system, messages, tools, reasoning_summary=False, max_output_tokens=None):
     """Return visible text, correlated calls, token usage, and replayable output."""
     body = {"model": model, "instructions": system, "input": _to_wire(messages),
-            "max_output_tokens": MAX_OUTPUT_TOKENS, "store": False,
+            "max_output_tokens": MAX_OUTPUT_TOKENS if max_output_tokens is None else max_output_tokens,
+            "store": False,
             "include": ["reasoning.encrypted_content"]}
     if reasoning_summary:
         body["reasoning"] = {"effort": "medium", "summary": "auto"}
@@ -98,14 +103,15 @@ def complete(model, system, messages, tools, reasoning_summary=False):
     return result
 
 
-def _post(url, body, retries=5):
+def _post(url, body, retries=5, *, headers=None, label="Foundry"):
     """POST JSON with a 600-second timeout and five transient-failure retries.
 
     Back off for 2, 4, 8, 16, and 32 seconds. Send the key only in a header.
     """
     request = urllib.request.Request(
         url, data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json", "api-key": api_key()}, method="POST",
+        headers={"Content-Type": "application/json",
+                 **(headers if headers is not None else {"api-key": api_key()})}, method="POST",
     )
     for attempt in range(retries + 1):
         try:
@@ -114,9 +120,9 @@ def _post(url, body, retries=5):
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:400]
             exc.close()
-            if exc.code not in (429, 500, 502, 503) or attempt == retries:
-                raise RuntimeError(f"Foundry HTTP {exc.code}: {detail}") from exc
+            if exc.code not in (429, 500, 502, 503, 504) or attempt == retries:
+                raise RuntimeError(f"{label} HTTP {exc.code}: {detail}") from exc
         except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
             if attempt == retries:
-                raise RuntimeError(f"Foundry request failed: {exc}") from exc
+                raise RuntimeError(f"{label} request failed: {exc}") from exc
         time.sleep(2**attempt * 2)

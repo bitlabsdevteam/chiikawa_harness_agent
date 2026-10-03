@@ -1,7 +1,7 @@
 # Chiikawa
 
 The smallest useful agent harness: ten core Python files, zero third-party
-dependencies, and a CLI plus concurrent fleet. Requires Python 3.10 or later. Chiikawa connects **gpt-6-astra on Microsoft Foundry** to a small, observable tool
+dependencies, and a CLI plus concurrent fleet. Requires Python 3.10 or later. Chiikawa connects **gpt-6-astra on Microsoft Foundry by default**, with optional OpenRouter support, to a small, observable tool
 loop. All harness code lives in `chiikawa/`; runnable examples live in `demos/`.
 
 Day 2 adds rooted file tools, shell execution, and an approval policy. Day 3 adds
@@ -42,6 +42,54 @@ with status 130 and explains how to resume. A missing `--resume` session is an
 error. The CLI shows live activity and public reasoning summaries when returned
 by the provider. Its “jail directory” constrains file tools; shell commands
 are **not OS-sandboxed**. Use a disposable workspace with appropriate permissions.
+
+### Use OpenRouter
+
+Set your OpenRouter key and select the provider explicitly:
+
+```sh
+export OPENROUTER_API_KEY="YOUR-OPENROUTER-KEY"
+python3 -m chiikawa --provider openrouter -d ./scratch
+# Choose another tool-capable model using its qualified OpenRouter ID:
+python3 -m chiikawa --provider openrouter -m anthropic/claude-sonnet-4.6 -d ./scratch
+```
+
+The installed `chiikawa` command accepts the same flags. Configuration comes
+from the environment; `.env` is not loaded automatically. For a trusted local
+`.env`, run `set -a`, `source .env`, then `set +a` before starting.
+
+| Setting | Foundry (default) | OpenRouter |
+| --- | --- | --- |
+| Provider flag | `--provider foundry` | `--provider openrouter` |
+| Default model | `gpt-6-astra` deployment | `openai/gpt-5.4` |
+| Model environment variable | `CHIIKAWA_MODEL` | `OPENROUTER_MODEL` |
+| API key | `CHIIKAWA_API_KEY` or `AZURE_OPENAI_API_KEY` | `OPENROUTER_API_KEY` only |
+| Output limit per response | 65,536 tokens | 16,384 tokens |
+
+`--provider` overrides `CHIIKAWA_PROVIDER`; without either, Foundry is selected
+even when an OpenRouter key exists. To opt into OpenRouter for your shell, set
+`CHIIKAWA_PROVIDER=openrouter`. `-m` overrides the selected provider's model
+environment variable. OpenRouter ignores Foundry's endpoint, keys, and model
+configuration. Use `--max-output-tokens 8192` to override either output limit,
+including compaction and child-agent requests. Select a tool-capable model and
+adjust `--context-threshold` and the output limit to fit its context window;
+the 600,000-token compaction threshold is an estimate, not a model capacity check.
+
+Tools, permissions, compaction, fleet jobs, and child agents use the selected
+provider. Resume OpenRouter sessions with `--provider openrouter --resume`.
+Resume restores the saved model unless you explicitly configure a different
+one, which is rejected. Switching providers or OpenRouter models requires a new
+session so opaque reasoning state is replayed only to its original provider/model.
+Existing sessions without provider metadata remain Foundry sessions.
+
+The library supports the same selection:
+
+```python
+from chiikawa import Harness
+
+agent = Harness("./scratch", provider="openrouter", model="openai/gpt-5.4",
+                max_output_tokens=8192)
+```
 
 Interactive startup displays Chiikawa wearing a baseball cap, with a CLI badge
 and wordmark:
@@ -111,7 +159,8 @@ threshold; the meter reflects that rather than implying a hard size limit.
 
 Context size is shown at interactive startup, before model requests, after
 compaction, and after responses. Compaction requests have their own input/output
-usage line. The **65,536-token output limit is per response**, taken from the
+usage line. The **output limit is per response** (65,536 for Foundry or 16,384
+for OpenRouter by default), taken from the
 same setting sent to the API. Token counts arrive after completion and are
 not live token-by-token counters or cumulative billing totals.
 
@@ -179,7 +228,7 @@ an `api-key` header. It translates function schemas, JSON arguments, visible
 output, and token usage. Astra tool calling requires the Responses API; the
 request omits unsupported `temperature`. Library calls use the model's default
 reasoning effort; the CLI opts into medium effort and public summaries unless
-`--no-reasoning` is supplied. The output token limit remains 65,536.
+`--no-reasoning` is supplied. The default Foundry output token limit is 65,536.
 
 Assistant messages retain the response's raw `provider_output` items, including
 opaque encrypted reasoning, for replay on the next turn. Each tool call and
@@ -188,8 +237,16 @@ Requests use `store: false` and request encrypted reasoning for stateless
 continuation. The demo prints only visible text and tool activity. Incomplete,
 failed, and empty responses raise errors; refusals are displayed as text.
 
-HTTP uses a 600-second timeout and up to five retries after the
-initial attempt for 429/500/502/503, URL failures, connection resets, and timeouts.
+`chiikawa/openrouter.py` uses OpenRouter's Chat Completions endpoint with Bearer
+authentication. It retains native assistant tool calls and `reasoning_details`
+in session journals and replays tool results with their original IDs. Only
+explicit `reasoning.summary` entries are displayed as public summaries; raw
+reasoning text and encrypted data stay out of terminal output. Some models do
+not return public summaries. Truncated or malformed tool responses fail before
+any tools execute. `chiikawa/providers.py` selects the backend for the harness.
+
+Both providers use a 600-second HTTP timeout and up to five retries after the
+initial attempt for 429/500/502/503/504, URL failures, connection resets, and timeouts.
 
 `chiikawa/loop.py` records replies and sequential tool results in the caller's
 message list. Tools expose `.spec` and `.run(**args)`. `before_tool` permits a
@@ -232,6 +289,9 @@ turn-limit behavior remains as specified. See
 API references: [Microsoft Foundry Responses API](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?view=foundry-classic),
 [GPT-6 migration](https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra#migration-quickstart),
 and [function calling](https://developers.openai.com/api/docs/guides/function-calling).
+OpenRouter references: [API overview](https://openrouter.ai/docs/api/reference/overview),
+[tool calling](https://openrouter.ai/docs/guides/features/tool-calling), and
+[reasoning replay](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
 
 ## Day 2: tools and policy
 
@@ -357,7 +417,8 @@ if restarted.resume():
 ```
 
 `Harness` creates and canonicalizes its workspace. Model selection is explicit
-`model`, then `CHIIKAWA_MODEL`, then the provider default (`gpt-6-astra`). The
+`model`, then the selected provider's model environment variable, then its default
+(`gpt-6-astra` for Foundry; `openai/gpt-5.4` for OpenRouter). The
 default policy is `Policy("yolo")`, as required by the exercise. Supply
 `Policy("safe", approver=...)` for explicit approval of writes and delegation.
 It combines core tools, `remember`, conditional `use_skill`, and optional

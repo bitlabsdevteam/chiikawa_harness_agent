@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "chiikawa-harness"
 dynamic = ["version"]
-description = "A small, resumable coding-agent CLI for Microsoft Foundry"
+description = "A small, resumable coding-agent CLI for Microsoft Foundry and OpenRouter"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []

@@ -19,7 +19,8 @@ VERSION = runpy.run_path(str(ROOT / "chiikawa" / "_version.py"))["__version__"]
 
 def smoke(command, workspace):
     env = {key: value for key, value in os.environ.items()
-           if key not in {"PYTHONPATH", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY", "CHIIKAWA_API_KEY"}}
+           if key not in {"PYTHONPATH", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY", "CHIIKAWA_API_KEY",
+                          "CHIIKAWA_PROVIDER", "OPENROUTER_API_KEY", "OPENROUTER_MODEL"}}
     def run(*args):
         return subprocess.run([*command, *args], cwd=workspace, env=env,
                               input="", text=True, capture_output=True, timeout=30)
@@ -32,6 +33,9 @@ def smoke(command, workspace):
     result = run("-p", "offline probe", "--max-turns", "0")
     assert result.returncode == 1 and "AZURE_OPENAI_ENDPOINT" in result.stderr, result
     assert "C H I I K A W A" not in result.stdout, result
+    result = run("--provider", "openrouter", "-p", "offline probe", "--max-turns", "0")
+    assert result.returncode == 1 and "OPENROUTER_API_KEY" in result.stderr, result
+    assert "AZURE_OPENAI_ENDPOINT" not in result.stderr, result
 
 
 def main():

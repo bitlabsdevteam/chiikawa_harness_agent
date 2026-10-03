@@ -61,7 +61,7 @@ def main(argv=None):
         if destination_dir not in path_dirs:
             print("Add this directory to PATH in your shell profile:")
             print(f"  export PATH={shlex.quote(str(destination_dir))}:\"$PATH\"")
-        print("Run chiikawa --help, then follow INSTALL.md to configure Foundry.")
+        print("Run chiikawa --help, then follow INSTALL.md to configure Foundry or OpenRouter.")
         return 0
     except (OSError, ValueError, subprocess.CalledProcessError) as exc:
         print(f"Installation failed: {exc}", file=sys.stderr)

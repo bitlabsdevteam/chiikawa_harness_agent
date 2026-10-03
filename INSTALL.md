@@ -1,8 +1,9 @@
 # Install Chiikawa
 
 Chiikawa runs on **macOS, Linux, and Windows through WSL**, with **Python 3.10
-or newer** on your PATH as `python3`. It uses Microsoft Foundry; you need your
-own endpoint, deployment, and API key. Native Windows is not supported yet.
+or newer** on your PATH as `python3`. It uses Microsoft Foundry by default
+(your own endpoint, deployment, and API key), or OpenRouter with your own API key.
+Native Windows is not supported yet.
 
 ## Downloadable installer
 
@@ -65,6 +66,24 @@ with status 130. Use `chiikawa --resume` from the same project to continue its
 latest session. Configuration comes from environment variables; `.env` files
 are not loaded automatically. Installation, `--help`, and `--version` need no credentials.
 
+To use OpenRouter instead, set its key and choose the provider:
+
+```sh
+export OPENROUTER_API_KEY="YOUR-OPENROUTER-KEY"
+chiikawa --provider openrouter -d /path/to/your/project
+# Optional model override (must support tools):
+chiikawa --provider openrouter -m anthropic/claude-sonnet-4.6
+```
+
+OpenRouter defaults to `openai/gpt-5.4`; `OPENROUTER_MODEL` changes that default.
+It uses only `OPENROUTER_API_KEY` and ignores Foundry configuration.
+Foundry remains the default even when both keys are present. Optionally set
+`CHIIKAWA_PROVIDER=openrouter` to select OpenRouter for your shell;
+`--provider foundry` or `--provider openrouter` overrides that setting.
+Resume with the original provider (`chiikawa --provider openrouter --resume`).
+The saved OpenRouter model is restored automatically; changing it requires
+a new session. Legacy sessions belong to Foundry.
+
 For this checkout's existing `.env`, load it before starting:
 
 ```sh
@@ -83,8 +102,11 @@ to stderr, leaving completed answers on stdout for redirection. Colors honor
 
 The context meter shows estimated history size and the **600,000-token compaction
 threshold**. Use `chiikawa --context-threshold 100000` to change that threshold.
-Each completed response shows API input/output usage and the **65,536-token
-output limit**; compaction requests are labeled separately. The context estimate
+Each completed response shows API input/output usage and the output limit
+(**65,536 tokens for Foundry; 16,384 for OpenRouter** by default). Override it
+with `--max-output-tokens 8192`; this also applies to compaction and child agents.
+Choose a context threshold and output limit that fit your selected model.
+Compaction requests are labeled separately. The context estimate
 matches the compactor's history-only estimate, while API input counts cover the
 actual request. Short histories can exceed the threshold until there are enough
 messages to compact. Missing API usage is shown as `not reported`.

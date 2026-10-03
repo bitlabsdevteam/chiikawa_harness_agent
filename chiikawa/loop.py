@@ -9,7 +9,8 @@ from time import monotonic
 
 
 def run_loop(model, system, messages, tools, on_event, before_tool,
-             max_turns=80, before_turn=None, activity=False, reasoning_summary=True):
+             max_turns=80, before_turn=None, activity=False, reasoning_summary=True,
+             backend=None, max_output_tokens=None):
     """Run tools in order until the model answers or the turn budget expires.
 
     Mutate the caller's history in place, including after optional compaction.
@@ -20,6 +21,8 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
     The turn budget counts model replies, not individual tool executions.
     Tool calls in a single reply share that turn and execute sequentially.
     """
+    backend = backend if backend is not None else provider
+    output_limit = backend.MAX_OUTPUT_TOKENS if max_output_tokens is None else max_output_tokens
     specs = [tool.spec for tool in tools.values()]
 
     def reply(available_tools):
@@ -31,7 +34,9 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
             if before_turn is not None:
                 messages[:] = before_turn(messages)
             options = {"reasoning_summary": True} if activity and reasoning_summary else {}
-            response = provider.complete(model, system, messages, available_tools, **options)
+            if max_output_tokens is not None:
+                options["max_output_tokens"] = max_output_tokens
+            response = backend.complete(model, system, messages, available_tools, **options)
             succeeded = True
         finally:
             if activity:
@@ -40,6 +45,8 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
                    "tool_calls": response["tool_calls"]}
         if "provider_output" in response:
             message["provider_output"] = response["provider_output"]
+        if "openrouter_message" in response:
+            message["openrouter_message"] = response["openrouter_message"]
         if "reasoning_summary" in response:
             message["reasoning_summary"] = response["reasoning_summary"]
         messages.append(message)
@@ -48,7 +55,7 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
         on_event("assistant", message)
         if activity:
             on_event("usage", {**(response.get("usage") or {}), "source": "response",
-                               "max_output_tokens": provider.MAX_OUTPUT_TOKENS})
+                               "max_output_tokens": output_limit})
         return message
 
     for _ in range(max_turns):

@@ -13,7 +13,7 @@ from .harness import Harness
 from .security import Policy
 from ._version import __version__
 from .terminal import PROGRESS_PROMPT, TerminalDisplay, safe_text
-from . import context, provider
+from . import context, providers
 
 
 LOGO = r"""           .--------.
@@ -88,7 +88,11 @@ def main(argv=None):
     parser.add_argument("--version", action="version", version=f"chiikawa {__version__}")
     parser.add_argument("-p", "--prompt", help="Run one headless task")
     parser.add_argument("-d", "--workdir", default=".", help="Working directory")
-    parser.add_argument("-m", "--model", help="Foundry deployment name")
+    parser.add_argument("--provider", choices=("foundry", "openrouter"),
+                        help="Model provider (default: CHIIKAWA_PROVIDER or foundry)")
+    parser.add_argument("-m", "--model", help="Foundry deployment name or qualified OpenRouter model ID")
+    parser.add_argument("--max-output-tokens", type=int, metavar="TOKENS",
+                        help="Per-response output cap (Foundry: 65536; OpenRouter: 16384)")
     parser.add_argument("--mode", choices=("safe", "yolo", "read-only"))
     parser.add_argument("--resume", action="store_true", help="Resume this directory's latest session")
     parser.add_argument("--max-turns", type=int, default=120)
@@ -102,23 +106,28 @@ def main(argv=None):
         parser.error("--max-turns must be nonnegative")
     if args.context_threshold < 0:
         parser.error("--context-threshold must be nonnegative")
+    if args.max_output_tokens is not None and args.max_output_tokens <= 0:
+        parser.error("--max-output-tokens must be positive")
     mode = args.mode or ("yolo" if args.prompt is not None else "safe")
     display = TerminalDisplay()
     try:
+        backend = providers.select(args.provider)
         approver = lambda call, reason: approve(call, reason, stream=sys.stderr)
         harness = Harness(args.workdir, model=args.model, policy=Policy(mode, approver),
                           on_event=display, max_turns=args.max_turns, activity=True,
                           budget_tokens=args.context_threshold,
-                          reasoning_summary=not args.no_reasoning, system_extra=PROGRESS_PROMPT)
+                          reasoning_summary=not args.no_reasoning, system_extra=PROGRESS_PROMPT,
+                          provider=backend.NAME, max_output_tokens=args.max_output_tokens)
         if args.resume and not harness.resume():
             parser.error("No nonempty session found in the selected working directory.")
         if args.prompt is not None:
             harness.run(args.prompt)
             return 0
         print_logo()
-        print(f"Chiikawa · model: {harness.model} · mode: {mode} · jail directory: {harness.workdir}", flush=True)
+        print(f"Chiikawa · provider: {backend.NAME} · model: {harness.model} · mode: {mode} · jail directory: {harness.workdir}", flush=True)
         display("context", context.context_status(harness.messages, args.context_threshold))
-        display.line(f"Output limit: {provider.MAX_OUTPUT_TOKENS:,} tokens per response", "2")
+        output_limit = backend.MAX_OUTPUT_TOKENS if args.max_output_tokens is None else args.max_output_tokens
+        display.line(f"Output limit: {output_limit:,} tokens per response", "2")
         while True:
             try:
                 task = input("chiikawa> ")
