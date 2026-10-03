@@ -43,31 +43,38 @@ error. The CLI shows live activity and public reasoning summaries when returned
 by the provider. Its “jail directory” constrains file tools; shell commands
 are **not OS-sandboxed**. Use a disposable workspace with appropriate permissions.
 
-Interactive startup displays a compact Chiikawa mascot and wordmark:
+Interactive startup displays Chiikawa wearing a baseball cap, with a CLI badge
+and wordmark:
 
 ```text
-       .--.   .--.
-      /    '-'    \
-     /             \
-    |   o       o   |
-    |  ///  w  ///  |
-     \             /
-      '._       _.'
-      /  '-----'  \
-     (___)   (___)
-
-    C H I I K A W A
-      >_ tiny harness
+           .--------.
+          /    >_    \
+      .--/____________\--.
+     /   \____________/   \
+     \  .-'          '-.  /
+      '/    _      _    \'
+      /    (o)    (o)    \
+     |   ///   w    ///   |    C H I I K A W A
+     |         '         |
+      \                 /     >_ tiny harness
+       '._           _.'
+      _/  '         '  \_
+     (  /             \  )
+      '-|             |-'
+        \             /
+         '._       _.'
+           (_)___(_)
 ```
 
-The cheeks and wordmark are pink on color terminals. Set `NO_COLOR=1` for
+The cap is blue, and the cheeks and wordmark are pink on color terminals. Set `NO_COLOR=1` for
 plain text; redirected output and `TERM=dumb` also omit logo colors. Headless
 tasks (`-p`) omit the logo. The artwork is embedded text and needs no network
 access or extra packages at startup.
 
-This unofficial terminal-art adaptation uses the rounded ears, face, and cheeks
-of Chiikawa from the [official anime website](https://www.anime-chiikawa.jp/)
-as a reference ([reference image](https://www.anime-chiikawa.jp/images/icon.png),
+This unofficial terminal-art adaptation follows the round ears, large eyes,
+cheeks, hands, and feet in the user-supplied `image-1.png`, with a cap added.
+The original version used the [official anime website](https://www.anime-chiikawa.jp/)
+as a reference ([original reference image](https://www.anime-chiikawa.jp/images/icon.png),
 accessed October 3, 2026). Chiikawa is a character created by Nagano; the project
 is not affiliated with the creator or anime production.
 
@@ -78,6 +85,35 @@ summaries, tool names, file paths, and completion status. File reads have bounde
 previews; successful edits and writes show actual before/after diffs, capped at
 40 lines. Shell commands show their output preview and exit code. Blocked and
 failed operations are labeled explicitly and do not display successful diffs.
+
+Context and token meters are enabled by default. For example:
+
+```text
+Context history (est.): ~12,480 tokens · compact above 600,000 (2.1%)
+Response tokens (API): input 13,210 · output 384 / 65,536 limit
+Compacted context: ~602,415 -> ~18,204 tokens
+```
+
+The context meter uses the **same history estimate as the compaction trigger**
+(characters in message representations divided by four). It includes history
+metadata, but excludes system instructions and tool schemas. It is an estimate,
+not a tokenizer measurement or the model's context-window capacity. API input
+usage is shown separately after each response; API output counts include all
+output tokens the provider reports, not only the visible answer. Missing API
+usage is displayed as `not reported`.
+
+The compaction threshold defaults to **600,000 estimated history tokens**. Set
+it with `chiikawa --context-threshold 100000` (`--budget-tokens` is an alias).
+The trigger is strictly above the threshold and checked before each model
+request. Histories of seven messages or fewer wait until there is enough history
+to summarize. Compaction preserves recent messages and can remain over the
+threshold; the meter reflects that rather than implying a hard size limit.
+
+Context size is shown at interactive startup, before model requests, after
+compaction, and after responses. Compaction requests have their own input/output
+usage line. The **65,536-token output limit is per response**, taken from the
+same setting sent to the API. Token counts arrive after completion and are
+not live token-by-token counters or cumulative billing totals.
 
 ```text
 Progress
@@ -98,6 +134,11 @@ Progress
 Activity goes to **stderr** and completed assistant answers to **stdout**, so
 `chiikawa -p "your task" > answer.txt` keeps the activity visible in the terminal.
 Non-terminal output has no spinner or ANSI formatting; `NO_COLOR` disables colors.
+While thinking, the terminal indicator shows a random AI-themed joke from a
+built-in pool of 20 one-liners. It rotates every five seconds without repeating
+until the pool is exhausted, and fits the terminal width. Jokes clear when the
+response arrives; they are not added to answers, session history, or redirected
+activity logs. They work offline and do not make additional model requests.
 Summaries arrive when a model response completes, and command output arrives
 when that command finishes; this is not token or subprocess-output streaming.
 
@@ -161,7 +202,9 @@ the call dictionary for `tool_start`, and the tool history message for
 `tool_end`. Provider and hook errors propagate to the application.
 
 With `Harness(activity=True)`, observers also receive `model_start`, `model_end`,
-and public `reasoning` events. Tool completion events include `status`, `elapsed`,
+public `reasoning`, `context`, `usage`, `compaction_start`, and `compaction` events.
+Usage events distinguish `response` from `compaction` and use `None` for missing
+API counts. Tool completion events include `status`, `elapsed`,
 and bounded `details` (file diffs, line counts, or exit codes). Those display
 details are not added to model history; assistant and tool messages are durable
 before display. `reasoning_summary=False` disables the summary request/events.

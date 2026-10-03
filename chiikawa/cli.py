@@ -13,32 +13,38 @@ from .harness import Harness
 from .security import Policy
 from ._version import __version__
 from .terminal import PROGRESS_PROMPT, TerminalDisplay, safe_text
+from . import context, provider
 
 
-LOGO = r"""
-       .--.   .--.
-      /    '-'    \
-     /             \
-    |   o       o   |
-    |  ///  w  ///  |
-     \             /
-      '._       _.'
-      /  '-----'  \
-     (___)   (___)
-
-    C H I I K A W A
-      >_ tiny harness
-"""
+LOGO = r"""           .--------.
+          /    >_    \
+      .--/____________\--.
+     /   \____________/   \
+     \  .-'          '-.  /
+      '/    _      _    \'
+      /    (o)    (o)    \
+     |   ///   w    ///   |    C H I I K A W A
+     |         '         |
+      \                 /     >_ tiny harness
+       '._           _.'
+      _/  '         '  \_
+     (  /             \  )
+      '-|             |-'
+        \             /
+         '._       _.'
+           (_)___(_)"""
 
 
 def print_logo():
     """Render the offline mascot; honor NO_COLOR and plain terminal output.
 
-    Character reference: https://www.anime-chiikawa.jp/images/icon.png
+    Redrawn from the user's image-1.png reference, with a baseball cap added.
     Chiikawa is by Nagano; this is an unofficial terminal-art adaptation.
     """
     logo = LOGO
     if sys.stdout.isatty() and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb":
+        for piece in (".--------.", "/    >_    \\", "/____________\\", "\\____________/"):
+            logo = logo.replace(piece, f"\033[94m{piece}\033[0m")
         logo = logo.replace("///", "\033[95m///\033[0m")
         logo = logo.replace("C H I I K A W A", "\033[1;95mC H I I K A W A\033[0m")
         logo = logo.replace(">_ tiny harness", "\033[2m>_ tiny harness\033[0m")
@@ -86,17 +92,23 @@ def main(argv=None):
     parser.add_argument("--mode", choices=("safe", "yolo", "read-only"))
     parser.add_argument("--resume", action="store_true", help="Resume this directory's latest session")
     parser.add_argument("--max-turns", type=int, default=120)
+    parser.add_argument("--context-threshold", "--budget-tokens", type=int,
+                        default=context.DEFAULT_BUDGET_TOKENS, metavar="TOKENS",
+                        help="Compact above this estimated history size (default: 600000 tokens)")
     parser.add_argument("--no-reasoning", action="store_true",
                         help="Disable public reasoning summaries (for models that do not support them)")
     args = parser.parse_args(argv)
     if args.max_turns < 0:
         parser.error("--max-turns must be nonnegative")
+    if args.context_threshold < 0:
+        parser.error("--context-threshold must be nonnegative")
     mode = args.mode or ("yolo" if args.prompt is not None else "safe")
     display = TerminalDisplay()
     try:
         approver = lambda call, reason: approve(call, reason, stream=sys.stderr)
         harness = Harness(args.workdir, model=args.model, policy=Policy(mode, approver),
                           on_event=display, max_turns=args.max_turns, activity=True,
+                          budget_tokens=args.context_threshold,
                           reasoning_summary=not args.no_reasoning, system_extra=PROGRESS_PROMPT)
         if args.resume and not harness.resume():
             parser.error("No nonempty session found in the selected working directory.")
@@ -105,6 +117,8 @@ def main(argv=None):
             return 0
         print_logo()
         print(f"Chiikawa · model: {harness.model} · mode: {mode} · jail directory: {harness.workdir}", flush=True)
+        display("context", context.context_status(harness.messages, args.context_threshold))
+        display.line(f"Output limit: {provider.MAX_OUTPUT_TOKENS:,} tokens per response", "2")
         while True:
             try:
                 task = input("chiikawa> ")

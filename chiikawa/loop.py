@@ -46,6 +46,9 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
         if activity and reasoning_summary and response.get("reasoning_summary"):
             on_event("reasoning", {"text": response["reasoning_summary"]})
         on_event("assistant", message)
+        if activity:
+            on_event("usage", {**(response.get("usage") or {}), "source": "response",
+                               "max_output_tokens": provider.MAX_OUTPUT_TOKENS})
         return message
 
     for _ in range(max_turns):

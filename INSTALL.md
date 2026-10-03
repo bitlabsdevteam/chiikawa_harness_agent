@@ -81,6 +81,14 @@ Summaries appear after each model response, when available. Activity is written
 to stderr, leaving completed answers on stdout for redirection. Colors honor
 `NO_COLOR`, and redirected activity has no animation or terminal escape codes.
 
+The context meter shows estimated history size and the **600,000-token compaction
+threshold**. Use `chiikawa --context-threshold 100000` to change that threshold.
+Each completed response shows API input/output usage and the **65,536-token
+output limit**; compaction requests are labeled separately. The context estimate
+matches the compactor's history-only estimate, while API input counts cover the
+actual request. Short histories can exceed the threshold until there are enough
+messages to compact. Missing API usage is shown as `not reported`.
+
 For scripts, use `chiikawa -p "your task"`. Headless mode defaults to `yolo`;
 add `--mode safe` or `--mode read-only` when appropriate. Shell commands run
 with your user permissions. See `chiikawa --help` for all options.

@@ -12,6 +12,7 @@ import urllib.parse
 import urllib.request
 
 DEFAULT_MODEL = "gpt-6-astra"
+MAX_OUTPUT_TOKENS = 65_536
 
 
 def api_key():
@@ -58,7 +59,7 @@ def _to_wire(messages):
 def complete(model, system, messages, tools, reasoning_summary=False):
     """Return visible text, correlated calls, token usage, and replayable output."""
     body = {"model": model, "instructions": system, "input": _to_wire(messages),
-            "max_output_tokens": 65536, "store": False,
+            "max_output_tokens": MAX_OUTPUT_TOKENS, "store": False,
             "include": ["reasoning.encrypted_content"]}
     if reasoning_summary:
         body["reasoning"] = {"effort": "medium", "summary": "auto"}
@@ -90,8 +91,8 @@ def complete(model, system, messages, tools, reasoning_summary=False):
         raise RuntimeError("Foundry returned no visible text or function calls.")
     usage = response.get("usage") or {}
     result = {"text": "".join(text), "tool_calls": calls, "provider_output": output,
-              "usage": {"input": usage.get("input_tokens", 0),
-                        "output": usage.get("output_tokens", 0)}}
+              "usage": {"input": usage.get("input_tokens"),
+                        "output": usage.get("output_tokens")}}
     if summaries:
         result["reasoning_summary"] = "\n\n".join(summaries)
     return result

@@ -17,7 +17,7 @@ class Harness:
     """A single active conversation over one workspace, with explicit dependencies."""
 
     def __init__(self, workdir=".", model=None, policy=None, extra_tools=None,
-                 system_extra="", on_event=None, budget_tokens=600_000, max_turns=120,
+                 system_extra="", on_event=None, budget_tokens=context.DEFAULT_BUDGET_TOKENS, max_turns=120,
                  session_path=None, enable_subagents=True, persist=True, _depth=0,
                  activity=False, reasoning_summary=True):
         """Create a workspace and compose the existing modules without rewriting them."""
@@ -97,11 +97,26 @@ class Harness:
             """Sync history before an observer can fail, stop the process, or inspect it."""
             self._flush()
             self.on_event(kind, payload)
+            if self.activity and kind == "usage" and payload.get("source") == "response":
+                self.on_event("context", context.context_status(self.messages, self.budget_tokens))
 
         def before_turn(messages):
             """Flush pending input, then move the cursor to the new working-view boundary."""
             self._flush()
-            replacement = context.compact(self.model, messages, self.budget_tokens)
+            options = {}
+            if self.activity:
+                status = context.context_status(messages, self.budget_tokens)
+                on_event("context", status)
+                if status["can_compact"]:
+                    on_event("compaction_start", status)
+                options["on_usage"] = lambda usage: on_event("usage", {
+                    **usage, "source": "compaction", "max_output_tokens": provider.MAX_OUTPUT_TOKENS})
+            replacement = context.compact(self.model, messages, self.budget_tokens, **options)
+            if self.activity and replacement is not messages:
+                on_event("compaction", {"tokens_before": status["estimated_tokens"],
+                                       "tokens_after": context.estimate_tokens(replacement),
+                                       "threshold": self.budget_tokens})
+                on_event("context", context.context_status(replacement, self.budget_tokens))
             # A summary is a view of already-journaled events, not another event.
             self._recorded = len(replacement)
             return replacement

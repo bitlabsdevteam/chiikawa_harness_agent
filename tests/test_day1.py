@@ -104,14 +104,14 @@ class ProviderTests(unittest.TestCase):
         }))
 
     def test_no_tools_and_missing_usage(self):
-        """Omit declarations for text-only calls and default absent usage to zero."""
+        """Omit declarations for text-only calls and keep missing usage unknown."""
         output = [{"type": "message", "content": [{"type": "output_text", "text": "coffee"}]}]
         with patch.object(provider, "_post", return_value={"status": "completed", "output": output}) as post, \
              patch.object(provider, "api_root", return_value="https://example.com/openai/v1"):
             result = provider.complete("model", "system", [], [])
         self.assertNotIn("tools", post.call_args.args[1])
         self.assertEqual(result, {"text": "coffee", "tool_calls": [], "provider_output": output,
-                                  "usage": {"input": 0, "output": 0}})
+                                  "usage": {"input": None, "output": None}})
 
     def test_incomplete_failed_or_empty_response(self):
         """Do not execute partial calls or report empty responses as success."""
