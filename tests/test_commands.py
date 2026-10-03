@@ -31,8 +31,8 @@ class CommandTests(unittest.TestCase):
         redirect = contextlib.redirect_stdout(self.output)
         redirect.__enter__()
         self.addCleanup(redirect.__exit__, None, None, None)
-        self.commands = Commands(Harness(self.root), lambda selected, model: Harness(
-            self.root, provider=selected, model=model))
+        self.commands = Commands(Harness(self.root), lambda selected, model, **options: Harness(
+            self.root, provider=selected, model=model, **options))
 
     def test_discovery_status_and_unknown_commands_are_local(self):
         with patch.object(provider, 'complete') as request:
@@ -41,7 +41,7 @@ class CommandTests(unittest.TestCase):
             self.assertTrue(self.commands.handle('/typo'))
             self.assertFalse(self.commands.handle('ordinary task'))
         request.assert_not_called()
-        for name in ('/model', '/provider', '/status', '/new', '/help', '/exit'):
+        for name in ('/model', '/provider', '/status', '/new', '/help', '/exit', '/sandbox', '/jail'):
             self.assertIn(name, self.output.getvalue())
         self.assertIn('Provider: foundry', self.output.getvalue())
         self.assertIn('Output limit: 65,536', self.output.getvalue())
@@ -94,7 +94,7 @@ class CommandTests(unittest.TestCase):
         self.commands.handle('/provider openrouter')
         self.assertEqual(self.commands.harness.model, os.environ['OPENROUTER_MODEL'])
         old = self.commands.harness
-        def fail(*args):
+        def fail(*args, **kwargs):
             raise RuntimeError('construction failed')
         self.commands.make_harness = fail
         self.commands.handle('/new')
@@ -202,7 +202,7 @@ class TerminalTests(unittest.TestCase):
         self.start()
         self.send('/')  # Deliberately no Enter: every command must already be visible.
         output = self.read_until(b'Esc dismiss')
-        for command in (b'/model', b'/provider', b'/status', b'/new', b'/help', b'/exit'):
+        for command in (b'/model', b'/provider', b'/status', b'/new', b'/help', b'/exit', b'/sandbox', b'/jail'):
             self.assertIn(command, output)
         self.send('pro')
         self.read_until(b'chiikawa> /pro')

@@ -206,12 +206,14 @@ class HarnessTests(WorkspaceCase):
         path.parent.mkdir(parents=True)
         path.write_text("---\ndescription: Writing\n---\nPirate speech")
         replacement = Tool("read_file", {"schema": {}}, lambda **_: "override")
-        harness = Harness(self.root, extra_tools=[replacement], system_extra="Additional context", enable_subagents=False)
+        harness = Harness(self.root, extra_tools=[replacement], enable_subagents=False)
         self.assertIs(harness.tools["read_file"], replacement)
         self.assertIn("use_skill", harness.tools)
         self.assertNotIn("spawn_agent", harness.tools)
-        self.assertIn("Skills available", harness.system)
-        self.assertTrue(harness.system.endswith("Additional context"))
+        self.assertNotIn("Skills available", harness.system)
+        self.assertIn("Skills available", harness._environment["catalog"])
+        with self.assertRaisesRegex(ValueError, "system_extra"):
+            Harness(self.root, system_extra="Additional context")
 
     def test_every_message_is_durable_before_external_event(self):
         """Observers always see a fully synced assistant or tool record on disk."""
@@ -301,7 +303,7 @@ class HarnessTests(WorkspaceCase):
         with patch.object(provider, "complete", side_effect=RuntimeError("network")):
             with self.assertRaisesRegex(RuntimeError, "network"):
                 harness.run("task")
-        self.assertEqual(session.load(harness.session_path), [{"role": "user", "text": "task"}])
+        self.assertEqual(session.load(harness.session_path), [{"role": "user", "text": "task", "profile": "standard"}])
         another = Harness(self.root)
         with patch.object(session, "append", side_effect=OSError("disk")), patch.object(provider, "complete") as complete:
             with self.assertRaisesRegex(OSError, "disk"):
@@ -317,17 +319,17 @@ class HarnessTests(WorkspaceCase):
             """Inspect each freshly constructed child at its first model call."""
             observed.append(copy.deepcopy(messages))
             self.assertEqual(model, "child-model")
-            self.assertIn("custom system", system)
+            self.assertIn("Chiikawa core operating policy", system)
             return reply("child report")
 
-        parent = Harness(self.root, model="child-model", policy=policy, system_extra="custom system")
+        parent = Harness(self.root, model="child-model", policy=policy)
         parent.messages = [{"role": "user", "text": "parent-only secret context"}]
         with patch.object(provider, "complete", side_effect=complete), patch.object(session, "new_session") as new:
             self.assertEqual(parent.tools["spawn_agent"].run(task="first child"), "child report")
             self.assertEqual(parent.tools["spawn_agent"].run(task="second child"), "child report")
         new.assert_not_called()
-        self.assertEqual(observed, [[{"role": "user", "text": "first child"}],
-                                    [{"role": "user", "text": "second child"}]])
+        self.assertEqual(observed, [[{"role": "user", "text": "first child", "profile": "standard"}],
+                                    [{"role": "user", "text": "second child", "profile": "standard"}]])
         self.assertFalse((self.root / session.SESSION_DIR).exists())
 
     def test_child_policy_is_enforced(self):

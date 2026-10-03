@@ -10,12 +10,6 @@ import threading
 import time
 
 
-PROGRESS_PROMPT = """Keep the user informed with a brief public progress update before
-the first tool call and when your approach changes. State the immediate action
-and its purpose in one sentence, then use the tools. Do not narrate every step
-or disclose private internal reasoning. Finish with the result and verification."""
-
-
 AI_JOKES = (
     "My neural net goes to the gym for the weights.",
     "AI snacks? Microchips and byte-sized cookies.",

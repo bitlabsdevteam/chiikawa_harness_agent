@@ -63,7 +63,7 @@ class Prompt:
                 start -= 1
             visible = clip(text[start:], available)
             write('\r\033[J' + prompt + (green(visible) if history_index < len(self.history) else visible))
-            shown = options[:max(0, min(7, height - 3))]
+            shown = options[:max(0, min(9, height - 3))]
             offset = max(0, selected - len(shown) + 1) if shown else 0
             shown = options[offset:offset + len(shown)]
             for index, (_, description) in enumerate(shown, offset):

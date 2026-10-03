@@ -12,10 +12,11 @@ import sys
 from .harness import Harness
 from .security import Policy
 from ._version import __version__
-from .terminal import PROGRESS_PROMPT, TerminalDisplay, safe_text
+from .terminal import TerminalDisplay, safe_text
 from . import context, providers
 from .commands import Commands
 from .prompt import Prompt
+from .runtime import DEFAULT_IMAGE, setup_image
 
 
 LOGO = r"""           .--------.
@@ -96,6 +97,12 @@ def main(argv=None):
     parser.add_argument("--max-output-tokens", type=int, metavar="TOKENS",
                         help="Per-response output cap (Foundry: 65536; OpenRouter: 16384)")
     parser.add_argument("--mode", choices=("safe", "yolo", "read-only"))
+    parser.add_argument("--profile", choices=("standard", "enterprise"), default="standard")
+    parser.add_argument("--isolation", choices=("jail", "sandbox"),
+                        help="Default: jail in standard profile; sandbox required in enterprise")
+    parser.add_argument("--sandbox-network", choices=("deny", "allow"), default="deny")
+    parser.add_argument("--sandbox-image", default=DEFAULT_IMAGE, help="Trusted, locally available sandbox image")
+    parser.add_argument("--sandbox-setup", action="store_true", help="Explicitly build the bundled sandbox image and exit")
     parser.add_argument("--resume", action="store_true", help="Resume this directory's latest session")
     parser.add_argument("--max-turns", type=int, default=120)
     parser.add_argument("--context-threshold", "--budget-tokens", type=int,
@@ -113,15 +120,22 @@ def main(argv=None):
     mode = args.mode or ("yolo" if args.prompt is not None else "safe")
     display = TerminalDisplay()
     try:
+        if args.sandbox_setup:
+            setup_image(args.sandbox_image)
+            print(f"Sandbox image ready: {args.sandbox_image}", flush=True)
+            return 0
         backend = providers.select(args.provider)
         approver = lambda call, reason: approve(call, reason, stream=sys.stderr)
 
-        def make_harness(provider_name, model):
+        def make_harness(provider_name, model, **isolation_options):
+            options = dict(profile=args.profile, isolation=args.isolation, sandbox_network=args.sandbox_network, sandbox_image=args.sandbox_image)
+            options.update(isolation_options)
             return Harness(args.workdir, model=model, policy=Policy(mode, approver),
                            on_event=display, max_turns=args.max_turns, activity=True,
                            budget_tokens=args.context_threshold,
-                           reasoning_summary=not args.no_reasoning, system_extra=PROGRESS_PROMPT,
-                           provider=provider_name, max_output_tokens=args.max_output_tokens)
+                           reasoning_summary=not args.no_reasoning,
+                           provider=provider_name, max_output_tokens=args.max_output_tokens,
+                           **options)
 
         harness = make_harness(backend.NAME, args.model)
         if args.resume and not harness.resume():
@@ -130,7 +144,7 @@ def main(argv=None):
             harness.run(args.prompt)
             return 0
         print_logo()
-        print(f"Chiikawa · provider: {backend.NAME} · model: {harness.model} · mode: {mode} · jail directory: {harness.workdir}", flush=True)
+        print(f"Chiikawa · provider: {backend.NAME} · model: {harness.model} · mode: {mode} · isolation: {harness.isolation.title()} · {'jail directory' if harness.isolation == 'jail' else 'workspace'}: {harness.workdir}", flush=True)
         display("context", context.context_status(harness.messages, args.context_threshold))
         output_limit = backend.MAX_OUTPUT_TOKENS if args.max_output_tokens is None else args.max_output_tokens
         display.line(f"Output limit: {output_limit:,} tokens per response", "2")

@@ -42,7 +42,7 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(post.call_args.args[1]["max_output_tokens"], 4096)
         self.assertIn("compact above 12,000", stderr.getvalue())
         self.assertIn("Response tokens (API): input 2,345 · output 123 / 4,096 limit", stderr.getvalue())
-        expected = math.ceil(context.estimate_tokens([{"role": "user", "text": "hello"}]))
+        expected = math.ceil(context.estimate_tokens([{"role": "user", "text": "hello", "profile": "standard"}]))
         self.assertIn(f"Context history (est.): ~{expected} tokens", stderr.getvalue())
         self.assertNotIn("\033", stderr.getvalue())
 
@@ -78,7 +78,7 @@ class MetricsTests(unittest.TestCase):
 
         with patch.object(provider, "complete", side_effect=complete):
             harness.run("continue")
-        old = original + [{"role": "user", "text": "continue"}]
+        old = original + [{"role": "user", "text": "continue", "profile": "standard"}]
         initial = next(payload for kind, payload in events if kind == "context")
         self.assertEqual(initial["estimated_tokens"], context.estimate_tokens(old))
         self.assertEqual(initial["threshold"], 1000)

@@ -1,3 +1,5 @@
+include chiikawa/SYSTEM_PROMPT.md
+include chiikawa/Sandbox.Dockerfile
 include INSTALL.md
 recursive-include scripts *.py
 recursive-include tests *.py

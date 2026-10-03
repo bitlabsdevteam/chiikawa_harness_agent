@@ -10,7 +10,7 @@ from time import monotonic
 
 def run_loop(model, system, messages, tools, on_event, before_tool,
              max_turns=80, before_turn=None, activity=False, reasoning_summary=True,
-             backend=None, max_output_tokens=None):
+             backend=None, max_output_tokens=None, context_messages=None):
     """Run tools in order until the model answers or the turn budget expires.
 
     Mutate the caller's history in place, including after optional compaction.
@@ -36,7 +36,8 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
             options = {"reasoning_summary": True} if activity and reasoning_summary else {}
             if max_output_tokens is not None:
                 options["max_output_tokens"] = max_output_tokens
-            response = backend.complete(model, system, messages, available_tools, **options)
+            request_messages = [dict(item) for item in context_messages] + messages if context_messages else messages
+            response = backend.complete(model, system, request_messages, available_tools, **options)
             succeeded = True
         finally:
             if activity:

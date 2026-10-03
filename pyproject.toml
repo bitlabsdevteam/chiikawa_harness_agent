@@ -26,3 +26,6 @@ packages = ["chiikawa"]
 
 [tool.setuptools.dynamic]
 version = {attr = "chiikawa._version.__version__"}
+
+[tool.setuptools.package-data]
+chiikawa = ["Sandbox.Dockerfile", "SYSTEM_PROMPT.md"]

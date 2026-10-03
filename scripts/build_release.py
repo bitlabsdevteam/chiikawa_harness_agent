@@ -24,6 +24,8 @@ def build(output):
         package.mkdir(parents=True)
         for source in sorted((ROOT / "chiikawa").glob("*.py")):
             shutil.copyfile(source, package / source.name)
+        for name in ("Sandbox.Dockerfile", "SYSTEM_PROMPT.md"):
+            shutil.copyfile(ROOT / "chiikawa" / name, package / name)
         (app / "CHIIKAWA-ARCHIVE").write_text("chiikawa-harness\n")
         (app / "__main__.py").write_text(
             'import os, sys\n'

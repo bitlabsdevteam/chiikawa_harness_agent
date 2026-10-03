@@ -15,7 +15,7 @@ from chiikawa import provider, session
 from demos.day1_dice import load_credentials
 
 REVIEW = "Review every file you produced against the skill bar as a demanding design director; list 12 concrete deficiencies; fix them all; verify again."
-SYSTEM_EXTRA = """Build a finished, usable product in this directory. Load the design-engineering
+TASK_GUIDANCE = """Build a finished, usable product in this directory. Load the design-engineering
 skill before working. Use only standard libraries; no package installs or external
 assets. Do not create git repositories or commits. Keep all source self-contained.
 For each HTML product, meet the full skill bar, with more than 1,400 visible prose
@@ -100,7 +100,7 @@ def run_phase(model, phase, names=None, review_prompt=None):
                 print(line, flush=True)
 
         harness = Harness(workdir, model=model, on_event=observe, enable_subagents=False,
-                          system_extra=SYSTEM_EXTRA, max_turns=120)
+                          max_turns=120)
         if phase != "build" and not harness.resume():
             raise RuntimeError(f"No prior session to review for {name}")
         if phase == "build" and session.latest(workdir) is not None:
@@ -108,7 +108,7 @@ def run_phase(model, phase, names=None, review_prompt=None):
         return harness
 
     jobs = [{"name": name, "workdir": roots[name],
-             "task": TASKS[name] if phase == "build" else (review_prompt or REVIEW)} for name in names]
+             "task": TASK_GUIDANCE + "\n\n" + (TASKS[name] if phase == "build" else (review_prompt or REVIEW))} for name in names]
     results = run_fleet(jobs, make_harness, max_workers=3)
     for result in results:
         path = session.latest(roots[result["name"]])

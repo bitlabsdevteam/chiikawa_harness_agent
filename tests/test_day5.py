@@ -22,6 +22,9 @@ class CliTests(unittest.TestCase):
             self.assertEqual(cli.main(["-p", "task"]), 0)
             self.assertEqual(factory.call_args.args, (".",))
             self.assertEqual(factory.call_args.kwargs["policy"].mode, "yolo")
+            self.assertIsNone(factory.call_args.kwargs["isolation"])
+            self.assertEqual(factory.call_args.kwargs["profile"], "standard")
+            self.assertEqual(factory.call_args.kwargs["sandbox_network"], "deny")
             factory.return_value.run.assert_called_once_with("task")
         with patch.object(cli, "Harness") as factory:
             cli.main(["--prompt", "task", "-d", "scratch", "-m", "model", "--mode", "read-only", "--max-turns", "9"])
@@ -37,6 +40,7 @@ class CliTests(unittest.TestCase):
              contextlib.redirect_stdout(output):
             factory.return_value.model = "gpt-6-astra"
             factory.return_value.workdir = "/scratch"
+            factory.return_value.isolation = "jail"
             self.assertEqual(cli.main([]), 0)
         self.assertEqual(factory.call_args.kwargs["policy"].mode, "safe")
         self.assertEqual([entry.args for entry in factory.return_value.run.call_args_list], [("one",), ("two",)])

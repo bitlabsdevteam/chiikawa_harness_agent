@@ -15,7 +15,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from chiikawa import memory, provider
+from chiikawa import memory, provider, system_policy
 from demos.day1_dice import load_credentials
 from demos.day3_context import TASK, display, run_task
 
@@ -97,12 +97,13 @@ def verify_files(model, root):
 
 
 def memory_probe(model, root):
-    """Answer using only a rebuilt system prompt and one fresh user message, with no tools."""
+    """Answer using rebuilt project context and one fresh user message, with no tools."""
     question = "What is the project's verification code? Reply with only the code."
     system = memory.build_system_prompt(root)
     messages = [{"role": "user", "text": question}]
-    response = provider.complete(model, system, messages, [])
-    return {"question": question, "system_prompt": system, "initial_messages": messages,
+    project_context = system_policy.project_messages({"memory": memory.read_memory(root), "catalog": ""})
+    response = provider.complete(model, system, project_context + messages, [])
+    return {"question": question, "system_prompt": system, "initial_messages": messages, "project_context": project_context,
             "tools_available": 0, "answer": response["text"], "tool_calls": response["tool_calls"]}
 
 
@@ -116,7 +117,7 @@ def verify_memory(model, root):
                               "--model", model], capture_output=True, text=True, timeout=600, check=True)
     report = json.loads(process.stdout)
     if expected not in report["answer"] or report["tool_calls"]:
-        raise RuntimeError("The fresh conversation did not recall the fact from its system prompt.")
+        raise RuntimeError("The fresh conversation did not recall the fact from project context.")
     if any(expected in message["text"] for message in report["initial_messages"]):
         raise RuntimeError("The recall question must not contain the answer.")
     report.update(passed=True, note=note, fresh_process=True, expected=expected)

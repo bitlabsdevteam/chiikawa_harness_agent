@@ -8,7 +8,7 @@ import argparse
 import tempfile
 from pathlib import Path
 
-from chiikawa import memory, skills
+from chiikawa import memory, skills, system_policy
 from chiikawa.context import compact, estimate_tokens
 from chiikawa.loop import run_loop
 from chiikawa.provider import DEFAULT_MODEL
@@ -55,11 +55,13 @@ def run_task(model, workdir, prompt=TASK, budget_tokens=1500, on_event=display, 
                      "summary": replacement[0]["text"]})
         return replacement
 
-    system = memory.build_system_prompt(workdir, skills.catalog_prompt(workdir))
+    system = memory.build_system_prompt(workdir)
+    project_context = system_policy.project_messages({"memory": memory.read_memory(workdir),
+                                                       "catalog": skills.catalog_prompt(workdir)})
     tools = {item.name: item for item in [*core_tools(workdir), use_skill, remember]}
     messages = [{"role": "user", "text": prompt}]
     policy = policy if policy is not None else Policy("yolo")
-    answer = run_loop(model, system, messages, tools, on_event, policy.check, before_turn=before_turn)
+    answer = run_loop(model, system, messages, tools, on_event, policy.check, before_turn=before_turn, context_messages=project_context)
     return answer, messages
 
 

@@ -45,8 +45,7 @@ def crash_worker(model, root):
             while True:
                 signal.pause()
 
-    Harness(root, model=model, on_event=observe, enable_subagents=False,
-            system_extra=RECOVERY_GUIDANCE).run(TASK)
+    Harness(root, model=model, on_event=observe, enable_subagents=False).run(TASK)
     raise RuntimeError("The worker finished without reaching the required mid-run crash point.")
 
 
@@ -93,8 +92,7 @@ def verify_recovery(model, root):
         events.append({"kind": kind, "payload": visible(payload)})
         on_event(kind, payload)
 
-    resumed = Harness(root, model=model, on_event=observe, enable_subagents=False,
-                      system_extra=RECOVERY_GUIDANCE)
+    resumed = Harness(root, model=model, on_event=observe, enable_subagents=False)
     if not resumed.resume():
         raise RuntimeError("The new Harness could not resume the interrupted session.")
     repairs = [message for message in resumed.messages if message.get("text") == session.INTERRUPTED]
@@ -103,7 +101,7 @@ def verify_recovery(model, root):
     for message in repairs:
         print(f"restored tool ({message['name']}): {message['text']}", flush=True)
     print("user: continue the task", flush=True)
-    answer = resumed.run("continue the task")
+    answer = resumed.run(RECOVERY_GUIDANCE + "\n\nContinue the task.")
     artifacts = {name: (root / name).read_text(encoding="utf-8")
                  for name in [*(f"part{i}.txt" for i in range(1, 6)), "SUMMARY.md"]}
     if not all(text.strip() for text in artifacts.values()):

@@ -138,13 +138,15 @@ class MemoryTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
-    def test_prompt_without_memory_and_with_extra(self):
-        """Keep stable base rules first, then platform/workdir, then optional extra."""
+    def test_prompt_excludes_memory_and_rejects_extra(self):
+        """The legacy host helper cannot elevate project data or arbitrary extra text."""
+        (self.root / memory.MEMORY_FILE).write_text("PRIVATE_PROJECT_FACT")
         with patch.object(memory.platform, "system", return_value="TestOS"):
-            prompt = memory.build_system_prompt(self.root, "extra guidance")
-        self.assertEqual(prompt, memory.BASE_PROMPT +
-                         f"\n\nPlatform: TestOS. Working directory: {self.root.resolve()}\n\nextra guidance")
-        self.assertNotIn("Project memory (", prompt)
+            prompt = memory.build_system_prompt(self.root)
+        self.assertIn('"platform": "TestOS"', prompt)
+        self.assertNotIn("PRIVATE_PROJECT_FACT", prompt)
+        with self.assertRaisesRegex(ValueError, "overrides"):
+            memory.build_system_prompt(self.root, "extra guidance")
         self.assertEqual(memory.MEMORY_FILE, "CHIIKAWA.md")
 
     def test_append_prompt_reload_and_fresh_process(self):
@@ -154,11 +156,11 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual((self.root / memory.MEMORY_FILE).read_text(),
                          "- Project codename is Maple.\n- Use UTF-8: 猫.\n")
         result = subprocess.run([sys.executable, "-c",
-            "import sys; from chiikawa.memory import build_system_prompt; print(build_system_prompt(sys.argv[1]))",
+            "import sys; from chiikawa.memory import read_memory; print(read_memory(sys.argv[1]))",
             str(self.root)], capture_output=True, text=True, check=True)
-        self.assertIn("Project memory (CHIIKAWA.md):\n- Project codename is Maple.", result.stdout)
+        self.assertIn("- Project codename is Maple.", result.stdout)
         (self.root / memory.MEMORY_FILE).write_text("- Updated fact\n")
-        self.assertIn("Updated fact", memory.build_system_prompt(self.root))
+        self.assertIn("Updated fact", memory.read_memory(self.root))
 
     def test_concurrent_appends_keep_every_complete_note(self):
         """Independent writers must not overwrite or interleave complete memory records."""
@@ -180,7 +182,7 @@ class MemoryTests(unittest.TestCase):
             target.write_text("unchanged")
             (self.root / memory.MEMORY_FILE).symlink_to(target)
             with self.assertRaises(PermissionError):
-                memory.build_system_prompt(self.root)
+                memory.read_memory(self.root)
             with self.assertRaises(PermissionError):
                 memory.remember(self.root, "new")
             self.assertEqual(target.read_text(), "unchanged")
@@ -304,7 +306,8 @@ class WiringTests(unittest.TestCase):
                 answer, messages = run_task("model", directory, "Write a welcome", on_event=Mock())
             self.assertEqual(answer, "Arrr, matey!")
             self.assertNotIn("Arrr, matey!", snapshots[0][0])
-            self.assertIn("Skills available", snapshots[0][0])
+            self.assertNotIn("Skills available", snapshots[0][0])
+            self.assertIn("Skills available", snapshots[0][1][0]["text"])
             self.assertIn("Arrr, matey!", snapshots[1][1][-1]["text"])
             self.assertEqual(messages[2]["role"], "tool")
 

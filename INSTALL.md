@@ -46,6 +46,36 @@ a source checkout, run `pipx install .` or `uv tool install .` at its root.
 The package name is `chiikawa-harness`; the command is `chiikawa`.
 This project is not yet published on PyPI, so use a file, source path, or release URL.
 
+## Protected enterprise execution
+
+Install Chiikawa outside the project it will edit. For example, use the portable
+installer, pipx, or uv tool installation rather than launching project-owned
+agent code. Start a local Linux Docker daemon (Docker Desktop on macOS), then:
+
+```sh
+chiikawa --sandbox-setup
+chiikawa -d /path/to/project --profile enterprise --mode safe
+```
+
+Enterprise requires Sandbox; an unavailable daemon or invalid installation stops
+startup. `/jail` and explicit Jail startup are rejected. The profile is inherited
+by children and new conversations, and enterprise sessions require
+`--profile enterprise --resume`. `/status` shows the profile and installed policy
+fingerprint. Policy and network startup choices remain the trusted operator's
+responsibility; headless tasks otherwise retain their existing `yolo` default.
+
+The core policy is packaged application content, not a user-selectable prompt.
+Developers can maintain `agents.md`/`AGENTS.md`/`AGENTS.MD` as subordinate project
+guidance read through tools. Nonempty library `system_extra` is rejected; migrate
+such requirements to task text or project guidance. Administrators update core
+policy through reviewed application releases, then restart running agents.
+
+This protects the official enterprise Harness from project/tool modifications
+under a trusted host installation. It does not protect against an administrator
+or OS-account owner replacing the application, and does not constitute a complete
+enterprise identity, audit, or deployment platform. Standard launches remain
+Jail by default. See README for the full security boundary and API migration.
+
 ## Configure and start
 
 Set your resource endpoint, API key, and deployment name in your shell or secret
@@ -68,6 +98,25 @@ to choose, or Esc to dismiss. `/model` and `/provider` open selection menus;
 a fresh conversation and preserves the previous session log. `/new` starts a
 fresh conversation, `/help` lists commands, and `/exit` quits. In basic terminals,
 type the command and press Enter (the live menu is unavailable).
+
+Jail is the default and requires no Docker: file tools stay in the project, but
+shell commands run with host permissions. To enable Docker isolation, start
+Docker Desktop (macOS) or a local Docker Engine (Linux), then run:
+
+```sh
+chiikawa --sandbox-setup       # Explicit download/build of bundled trusted sources
+chiikawa --isolation sandbox   # Start directly in Sandbox
+```
+
+In an existing conversation, `/sandbox` activates isolation and `/jail` returns
+to host execution. Switching preserves history and policy; a failed switch keeps
+the current mode. `/status` reports isolation and network access. Networking is
+disabled by default. `--sandbox-network allow` can configure it even while Jail
+is active, and `--sandbox-image IMAGE` selects a trusted image already present
+locally. `/sandbox` never downloads images. A resumed standard-profile CLI defaults to Jail unless
+you explicitly select Sandbox; enterprise sessions require the enterprise profile. See README's “Jail and Docker Sandbox” for the
+protected paths, container limits, and v1 restrictions. Project edits persist and
+can be destructive; protection by filename is not general secret detection.
 
 Safe mode
 asks before writes, shell commands, or delegation. Ctrl-D exits; Ctrl-C exits

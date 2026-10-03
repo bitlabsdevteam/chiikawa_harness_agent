@@ -40,8 +40,24 @@ Use `-m` to override the model, `--mode read-only` for file inspection, or
 `--max-turns` to change the default 120-turn budget. Ctrl-D exits; Ctrl-C exits
 with status 130 and explains how to resume. A missing `--resume` session is an
 error. The CLI shows live activity and public reasoning summaries when returned
-by the provider. Its “jail directory” constrains file tools; shell commands
-are **not OS-sandboxed**. Use a disposable workspace with appropriate permissions.
+by the provider. **Jail is the default:** its directory restriction applies to file
+tools; shell commands run with host permissions. Use `/sandbox` to activate Docker
+isolation for subsequent tools.
+
+**Enterprise mode:** use `--profile enterprise` for a protected core system policy
+and mandatory Docker Sandbox execution. Install Chiikawa outside the writable
+project and start Docker, then run:
+
+```sh
+chiikawa --sandbox-setup  # One-time image build; downloads required components
+chiikawa -d /path/to/project --profile enterprise --mode safe
+```
+
+Enterprise blocks switching to Jail and preserves its restrictions in child
+agents and new conversations. Project `AGENTS.md` guidance remains supported
+under the core policy. Networking is denied by default. See
+[Protected core policy and enterprise profile](#protected-core-policy-and-enterprise-profile)
+for configuration, installation requirements, and the trusted-administrator boundary.
 
 ### Interactive commands
 
@@ -54,7 +70,9 @@ you can also type a complete command directly:
 | --- | --- |
 | `/model [model-id]` | Show the current/configured models or choose a deployment/model ID. |
 | `/provider [foundry\|openrouter]` | Show or change providers; `/provider/` also works. |
-| `/status` | Show provider, model, policy, workspace, session path, estimated context, and limits. |
+| `/status` | Show profile, core policy fingerprint, isolation, network access, provider, model, approval policy, workspace, session, context, and limits. |
+| `/sandbox` | Validate Docker and switch subsequent tools to Sandbox. |
+| `/jail` | Return subsequent tools to host execution with file-tool restrictions; unavailable in enterprise mode. |
 | `/new` | Start a new conversation using the current configuration. |
 | `/help` or `/` | List every command. |
 | `/exit` | Exit the CLI. |
@@ -70,7 +88,7 @@ API requests or validate remote model access. Keys still come from the environme
 
 Changing model/provider starts a fresh conversation and preserves the previous
 session log. `/new` does the same without changing configuration. Workspace,
-policy, context threshold, turn limit, reasoning preference, and explicit output
+policy, isolation, sandbox network/image settings, context threshold, turn limit, reasoning preference, and explicit output
 limit remain in effect. Selecting the current model/provider keeps the session.
 Changes apply to this CLI process, not your shell configuration.
 
@@ -79,6 +97,157 @@ paste (pasted newlines become spaces and never submit automatically). Ctrl-D on
 an empty prompt exits. Basic terminals (`TERM=dumb`) and redirected input use
 plain input: type `/` and press Enter to list commands. Slash commands are local
 to the interactive prompt; a headless `-p` argument is always sent as task text.
+
+### Jail and Docker Sandbox
+
+```sh
+chiikawa                              # Jail; Docker is not required
+chiikawa --sandbox-setup              # Explicit one-time image download/build
+chiikawa --isolation sandbox          # Start in Sandbox using the local image
+chiikawa --sandbox-network allow      # Jail now; allow networking on later /sandbox
+chiikawa --sandbox-image trusted:tag  # Use an existing, trusted local image
+```
+
+`/sandbox` checks Docker and validates a worker invocation before committing the
+switch. It never pulls an image or runs a project Dockerfile. A failed switch
+keeps the current mode and conversation. `/jail` returns to host execution;
+selecting the active mode does nothing. Successful switches preserve messages,
+model, provider, workspace, and approval policy, refresh system instructions,
+and append a durable environment-change notice. `/new`, model/provider changes,
+and child agents inherit active isolation. Every fresh standard-profile CLI launch defaults to
+Jail unless `--isolation sandbox` is supplied, including when resuming a log. Enterprise-profile
+sessions require an enterprise-profile launch.
+History does not restore execution privileges.
+
+Provider requests, credentials, approvals, and journals stay on the host. All six
+core tools, project memory, and skill discovery/loading run through a trusted
+container worker. Each call starts a fresh container with the project mounted at
+`/workspace`: project edits persist immediately, while `/tmp` and background
+processes do not survive between calls. The standard image supplies Python 3.12,
+Node 22/npm, Git, Bash, core utilities, and ripgrep. Jail adds no dependencies.
+
+Containers run as a non-root user with a read-only root, a writable temporary
+filesystem, dropped capabilities, no privilege escalation, Docker's default
+seccomp profile, 2 CPUs, 2 GiB memory, and a 256-process limit. Networking defaults
+to `deny`; `--sandbox-network allow` enables bridge networking. Host environment
+variables, home directories, Docker sockets, and SSH agents are not forwarded.
+Timeouts, Ctrl-C, and failures remove the specific container and its descendants;
+execution never silently falls back to the host.
+
+Existing `.env`/`.env.*` files and `credential.md` anywhere in the project are
+masked with empty read-only files; `.env` templates containing an `example` or
+`sample` suffix component remain accessible. Root `.chiikawa`, `.codex`, `.agents`,
+`.aws`, and `.ssh` directories are masked, and root `.git` is read-only. Unsafe
+protected-path symlinks, hard-linked files, sockets, and device files cause
+activation/tool execution to fail. Sandbox journals must reside under the
+non-symlink `.chiikawa/sessions` directory. Arbitrary host `extra_tools`, Git
+commits, and linked worktrees with external Git metadata are outside v1 support.
+Custom images are trusted code and must already exist locally. Use a local Linux
+Docker daemon (Docker Desktop on macOS); concurrently changing project mount
+paths from host processes is outside the isolation guarantee.
+
+Sandbox still permits destructive project edits when requested. Path protection
+is not general secret detection: secrets in other files or Git history can remain
+accessible. Enabled networking permits transmission of accessible project data.
+Approval policy remains independent of isolation in both modes.
+
+Library callers use `Harness(..., isolation="jail", sandbox_network="deny",
+sandbox_image="chiikawa-sandbox:1")` and `harness.set_isolation("sandbox")` or
+`harness.set_isolation("jail")`. Changes are permitted only between runs; the
+method returns `True` for a successful change and `False` for an active-mode no-op.
+
+Run the real container and terminal suite after setup:
+
+```sh
+CHIIKAWA_TEST_DOCKER=1 python3 -m unittest discover -s tests -p 'test_sandbox_docker.py' -v
+```
+
+Linux Docker coverage is required by CI. Docker Desktop is verified with the same
+suite on macOS; ordinary unit and package tests also run without Docker.
+
+### Protected core policy and enterprise profile
+
+Chiikawa's comprehensive operating policy is maintained in
+[`chiikawa/SYSTEM_PROMPT.md`](chiikawa/SYSTEM_PROMPT.md) and loaded from the installed
+application. It covers autonomous implementation, investigation, debugging,
+verification, delegation, instruction trust, permissions, secrets, and clear
+progress reporting. A project's `SYSTEM_PROMPT.md` is not a replacement policy.
+
+The host assembles the trusted system instructions from this policy and actual
+runtime facts. Project memory and skill descriptions are sent separately as
+labeled contextual user messages, while loaded skills, project files, and tool
+results remain ordinary tool output. They never become the provider's system
+instructions. Context messages are reattached for model requests without being
+duplicated in the durable journal or included in compaction summaries.
+
+Developers can write `agents.md`, `AGENTS.md`, or `AGENTS.MD` for repository
+conventions, architecture, and test commands. Chiikawa is instructed to discover
+and read applicable files through its tools before editing; this is model-driven
+inspection, not automatic file injection. Nested guidance applies within its
+directory. Conflicting files at the same level require clarification. Project
+guidance cannot authorize permission changes or override the core policy.
+
+```sh
+chiikawa                              # Standard profile, Jail by default
+chiikawa --profile enterprise         # Requires Sandbox and a separate installation
+chiikawa --profile enterprise --mode safe
+chiikawa --profile enterprise --resume
+```
+
+Enterprise is an explicit execution profile, fixed for a Harness's lifetime. It:
+
+- Requires Sandbox and rejects `--isolation jail`, `/jail`, and library downgrades.
+- Rejects host `extra_tools` and rechecks enterprise invariants before execution.
+- Requires the real installed package or zipapp outside the writable project;
+  package resources must not link outside their trusted package. Use an installed
+  release when developing in the Chiikawa source repository itself.
+- Keeps the core policy on the host; the container worker never receives the
+  deployed prompt resource and cannot modify the host installation through its tools.
+- Preserves profile through new conversations, model/provider changes, and child
+  agents. Sessions marked enterprise require `--profile enterprise` to resume.
+- Retains existing approval-policy semantics: interactive CLI uses `safe`, while
+  headless tasks and library calls default to `yolo`. Choose `--mode safe` explicitly
+  for headless approval. Network access defaults to `deny`; trusted startup
+  configuration may explicitly allow it.
+
+`/status` reports profile, isolation, and the core policy SHA-256 fingerprint. The
+fingerprint identifies loaded content; it is not a signature. Missing or empty
+installed policy fails before model execution. The loaded policy is fixed within
+a Harness; restart after an administrator deploys a policy update.
+
+```python
+from chiikawa import Harness, Policy
+
+agent = Harness("/path/to/project", profile="enterprise", policy=Policy("read-only"))
+print(agent.profile, agent.policy_fingerprint)
+print(agent.system)  # Read-only inspection; assignment is rejected.
+```
+
+**Trust boundary:** administrators who install, update, and launch the application,
+host application code, and configured container images are trusted. Users, project
+files, and model tool calls cannot replace the official Harness policy through
+supported interfaces. A modified host program can call low-level provider or loop
+functions with its own instructions; this is outside the protected Harness.
+The standard profile's host shell can alter a writable installation, so standard
+Jail execution does not provide enterprise tamper protection. A user controlling
+the OS account or installation can replace the application; preventing that
+requires a separately managed service or stronger deployment controls.
+
+The prompt defines behavior; runtime checks enforce isolation and permissions.
+Prompt-injection resistance is not a guarantee of model compliance. Sandbox still
+allows authorized destructive project edits and is not general secret detection.
+This profile is a protected-policy foundation, not a complete enterprise platform:
+central identity, administrator management, signed distribution, and enterprise
+audit infrastructure are not implemented by this change.
+
+**Migration:** nonempty `Harness(system_extra=...)` now raises a `ValueError` with
+migration guidance. Move ordinary requirements into the task or a project
+instruction file. `Harness.system`, `profile`, and `isolation` are read-only;
+standard-profile callers change isolation with `set_isolation`. The legacy
+`memory.build_system_prompt()` helper now returns only installed policy and host
+facts, rejects nonempty `extra`, and no longer includes project memory. Use
+`memory.read_memory()` for memory data; low-level integrations must send that data
+as ordinary context, not append it to system instructions.
 
 ### Use OpenRouter
 
@@ -358,8 +527,8 @@ with defaults as optional. `core_tools(workdir)` returns these six tools:
 File operations reject paths and symlinks outside the canonical workspace.
 Listing and search skip `.git`, `node_modules`, `__pycache__`, `.venv`, and
 symlinks to files outside the workspace. Shell execution uses the workspace as
-its current directory and requires a POSIX environment; it is not a filesystem
-sandbox. Timed-out or interrupted commands and their process groups are terminated.
+its current directory and requires a POSIX environment. In Jail it runs on the
+host; in Sandbox it runs inside the container boundary described above. Timed-out or interrupted commands and their process groups are terminated.
 
 `chiikawa/security.py` plugs directly into `before_tool=policy.check`:
 
@@ -409,7 +578,7 @@ earlier modules.
   orphaned calls. Recent opaque provider output remains intact. The token
   estimate is a trigger, not a hard ceiling or an exact tokenizer.
 - `memory.remember(workdir, note)` appends a fact to **CHIIKAWA.md** under a POSIX
-  file lock and syncs it to disk. `build_system_prompt` reads current memory
+  file lock and syncs it to disk. `read_memory` reads current memory
   into each new conversation, alongside base behavior and platform/workspace
   information. Memory must contain trusted project facts, not credentials or
   arbitrary untrusted content.
@@ -459,9 +628,11 @@ if restarted.resume():
 default policy is `Policy("yolo")`, as required by the exercise. Supply
 `Policy("safe", approver=...)` for explicit approval of writes and delegation.
 It combines core tools, `remember`, conditional `use_skill`, and optional
-`spawn_agent`; `extra_tools` can add or override tools.
+`spawn_agent`; standard Jail callers may add or override tools with `extra_tools`.
+Host extra tools are rejected in Sandbox and the enterprise profile. Nonempty
+`system_extra` is rejected; use task text or project instruction files.
 
-The constructor also accepts `system_extra`, `on_event`, `budget_tokens`
+The constructor also accepts `profile`, `on_event`, `budget_tokens`
 (default 600,000), `max_turns` (120), `session_path`, `enable_subagents`, and
 `persist`. Passing a session path selects the journal; call `resume(path)` to
 load its prior conversation. Only one active run should own a session at a time.

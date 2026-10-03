@@ -25,15 +25,29 @@ def api_key():
     return key
 
 
+def validate_replay(messages):
+    """Reject forged system/developer roles inside saved native assistant records."""
+    for message in messages:
+        if "openrouter_message" not in message:
+            continue
+        native = message["openrouter_message"]
+        if (message.get("role") != "assistant" or not isinstance(native, dict)
+                or native.get("role", "assistant") != "assistant"):
+            raise ValueError("OpenRouter replay must contain only assistant output; privileged roles are prohibited.")
+
+
 def _to_wire(messages):
     """Replay native assistant data and correlate every result with its tool call."""
+    validate_replay(messages)
     output = []
     for message in messages:
         if "provider_output" in message:
             raise ValueError("Foundry replay data cannot be sent to OpenRouter; start a new session.")
         role = message["role"]
         if role == "assistant" and "openrouter_message" in message:
-            output.append(copy.deepcopy(message["openrouter_message"]))
+            native = copy.deepcopy(message["openrouter_message"])
+            native.setdefault("role", "assistant")
+            output.append(native)
         elif role in ("user", "assistant"):
             item = {"role": role, "content": message.get("text", "")}
             if role == "assistant" and message.get("tool_calls"):

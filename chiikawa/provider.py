@@ -36,8 +36,23 @@ def api_root():
     return endpoint if parsed.path else endpoint + "/openai/v1"
 
 
+def validate_replay(messages):
+    """Native assistant replay cannot introduce privileged or user message roles."""
+    for message in messages:
+        if "provider_output" not in message:
+            continue
+        output = message["provider_output"]
+        if message.get("role") != "assistant" or not isinstance(output, list):
+            raise ValueError("Invalid Foundry assistant replay data.")
+        for item in output:
+            if (not isinstance(item, dict) or item.get("type") not in {"message", "reasoning", "function_call"}
+                    or item.get("role", "assistant") != "assistant"):
+                raise ValueError("Foundry replay must contain only assistant output; privileged roles are prohibited.")
+
+
 def _to_wire(messages):
     """Replay response items and correlate each tool result with its call ID."""
+    validate_replay(messages)
     items = []
     for message in messages:
         if "openrouter_message" in message:

@@ -12,6 +12,8 @@ COMMANDS = (
     ("/new", "Start a fresh conversation", ""),
     ("/help", "Show all commands", ""),
     ("/exit", "Exit Chiikawa", ""),
+    ("/sandbox", "Switch to Docker Sandbox isolation", ""),
+    ("/jail", "Switch to host execution with file-tool Jail", ""),
 )
 
 
@@ -71,10 +73,19 @@ class Commands:
         elif name == "/status":
             status = context.context_status(agent.messages, agent.budget_tokens)
             self.say(f"Provider: {agent.provider_name}\nModel: {agent.model}\nMode: {agent.policy.mode}\n"
+                     f"Profile: {agent.profile}\nCore policy SHA-256: {agent.policy_fingerprint}\n"
+                     f"Isolation: {agent.isolation.title()}\nNetwork: {agent.sandbox_network if agent.isolation == 'sandbox' else 'host'}\n"
                      f"Workspace: {agent.workdir}\nSession: {agent.session_path or '(new; no messages yet)'}\n"
                      f"Context history (est.): ~{status['estimated_tokens']:,.0f} / {agent.budget_tokens:,} tokens\n"
                      f"Output limit: {agent.max_output_tokens:,} tokens per response\n"
                      f"Turn limit: {agent.max_turns}")
+        elif name in ("/sandbox", "/jail"):
+            try:
+                changed = agent.set_isolation(name[1:])
+            except (OSError, ValueError, RuntimeError) as exc:
+                self.say(f"Isolation switch failed; still in {agent.isolation.title()}: {exc}")
+            else:
+                self.say(("Switched to " if changed else "Already in ") + agent.isolation_description())
         elif name == "/exit":
             self.exiting = True
         elif name in ("/model", "/provider") and not argument:
@@ -105,7 +116,11 @@ class Commands:
                 return True
             # Construct first: a configuration failure must leave the active session intact.
             try:
-                replacement = self.make_harness(selected_provider, selected_model)
+                replacement = self.make_harness(selected_provider, selected_model,
+                                                profile=agent.profile, isolation=agent.isolation,
+                                                sandbox_network=agent.sandbox_network,
+                                                sandbox_image=agent.sandbox_image)
+                replacement.policy = agent.policy
             except (OSError, ValueError, RuntimeError) as exc:
                 self.say(f"Could not start a new conversation: {exc}")
                 return True

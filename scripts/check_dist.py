@@ -35,6 +35,19 @@ def smoke(command, workspace):
     assert "Provider: foundry" in result.stdout and "Provider: openrouter" in result.stdout, result
     assert "Model: vendor/custom" in result.stdout and "Output limit: 16,384" in result.stdout, result
     assert "\033" not in result.stdout + result.stderr, result
+    assert "Profile: standard" in result.stdout and "Core policy SHA-256:" in result.stdout, result
+    if os.environ.get("CHIIKAWA_TEST_DOCKER") == "1":
+        result = run("-d", str(workspace / "sandbox-smoke"), "--isolation", "sandbox",
+                     input_text="/status\n/jail\n/sandbox\n/exit\n")
+        assert result.returncode == 0, result
+        for expected in ("Isolation: Sandbox", "Network: deny", "Switched to Jail", "Switched to Sandbox"):
+            assert expected in result.stdout, result
+        result = run("-d", str(workspace / "enterprise-smoke"), "--profile", "enterprise",
+                     input_text="/status\n/jail\n/new\n/status\n/exit\n")
+        assert result.returncode == 0, result
+        assert "Profile: enterprise" in result.stdout and "Isolation: Sandbox" in result.stdout, result
+        assert "downgrade to Jail is not permitted" in result.stdout, result
+        assert "New conversation" in result.stdout, result
     result = run("-p", "offline probe", "--max-turns", "0")
     assert result.returncode == 1 and "AZURE_OPENAI_ENDPOINT" in result.stderr, result
     assert "C H I I K A W A" not in result.stdout, result
@@ -50,6 +63,7 @@ def main():
     portable = dist / f"chiikawa-{VERSION}.tar.gz"
     metadata_dir = f"chiikawa_harness-{VERSION}.dist-info"
     package_files = {f"chiikawa/{path.name}" for path in (ROOT / "chiikawa").glob("*.py")}
+    package_files.update({"chiikawa/Sandbox.Dockerfile", "chiikawa/SYSTEM_PROMPT.md"})
     with zipfile.ZipFile(wheel) as archive:
         assert set(archive.namelist()) == package_files | {
             f"{metadata_dir}/{name}" for name in ("METADATA", "WHEEL", "entry_points.txt", "top_level.txt", "RECORD")
