@@ -60,7 +60,16 @@ chiikawa --version
 chiikawa -d /path/to/your/project
 ```
 
-The interactive CLI displays its mascot and prompts with `chiikawa>`. Safe mode
+The interactive CLI displays its mascot and prompts with `chiikawa>`. Type `/`
+to open the command menu immediately. Filter by typing; use ↑/↓, Tab, and Enter
+to choose, or Esc to dismiss. `/model` and `/provider` open selection menus;
+`/status` shows your current configuration and session. You can also type
+`/provider openrouter` or `/model openai/gpt-5.4` directly. Changing either starts
+a fresh conversation and preserves the previous session log. `/new` starts a
+fresh conversation, `/help` lists commands, and `/exit` quits. In basic terminals,
+type the command and press Enter (the live menu is unavailable).
+
+Safe mode
 asks before writes, shell commands, or delegation. Ctrl-D exits; Ctrl-C exits
 with status 130. Use `chiikawa --resume` from the same project to continue its
 latest session. Configuration comes from environment variables; `.env` files

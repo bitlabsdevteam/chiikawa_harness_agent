@@ -14,6 +14,8 @@ from .security import Policy
 from ._version import __version__
 from .terminal import PROGRESS_PROMPT, TerminalDisplay, safe_text
 from . import context, providers
+from .commands import Commands
+from .prompt import Prompt
 
 
 LOGO = r"""           .--------.
@@ -113,11 +115,15 @@ def main(argv=None):
     try:
         backend = providers.select(args.provider)
         approver = lambda call, reason: approve(call, reason, stream=sys.stderr)
-        harness = Harness(args.workdir, model=args.model, policy=Policy(mode, approver),
-                          on_event=display, max_turns=args.max_turns, activity=True,
-                          budget_tokens=args.context_threshold,
-                          reasoning_summary=not args.no_reasoning, system_extra=PROGRESS_PROMPT,
-                          provider=backend.NAME, max_output_tokens=args.max_output_tokens)
+
+        def make_harness(provider_name, model):
+            return Harness(args.workdir, model=model, policy=Policy(mode, approver),
+                           on_event=display, max_turns=args.max_turns, activity=True,
+                           budget_tokens=args.context_threshold,
+                           reasoning_summary=not args.no_reasoning, system_extra=PROGRESS_PROMPT,
+                           provider=provider_name, max_output_tokens=args.max_output_tokens)
+
+        harness = make_harness(backend.NAME, args.model)
         if args.resume and not harness.resume():
             parser.error("No nonempty session found in the selected working directory.")
         if args.prompt is not None:
@@ -128,14 +134,21 @@ def main(argv=None):
         display("context", context.context_status(harness.messages, args.context_threshold))
         output_limit = backend.MAX_OUTPUT_TOKENS if args.max_output_tokens is None else args.max_output_tokens
         display.line(f"Output limit: {output_limit:,} tokens per response", "2")
+        print("Type / for commands · /model · /provider · /status", flush=True)
+        commands = Commands(harness, make_harness)
+        prompt = Prompt(commands.candidates)
         while True:
             try:
-                task = input("chiikawa> ")
+                task = prompt.read()
             except EOFError:
                 print()
                 return 0
             if task.strip():
-                harness.run(task)
+                if commands.handle(task):
+                    if commands.exiting:
+                        return 0
+                else:
+                    commands.harness.run(task)
     except KeyboardInterrupt:
         # Durable callbacks precede execution; exit rather than reusing an unfinished in-memory turn.
         print("\nInterrupted. The session log is safe; --resume continues it.", file=sys.stderr)

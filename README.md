@@ -43,6 +43,43 @@ error. The CLI shows live activity and public reasoning summaries when returned
 by the provider. Its “jail directory” constrains file tools; shell commands
 are **not OS-sandboxed**. Use a disposable workspace with appropriate permissions.
 
+### Interactive commands
+
+Type `/` at the prompt to see the command menu immediately, without pressing
+Enter. Continue typing to filter it, use ↑/↓ to select, Tab to complete, Enter
+to choose, and Esc to dismiss. `/model` and `/provider` open their choices;
+you can also type a complete command directly:
+
+| Command | Action |
+| --- | --- |
+| `/model [model-id]` | Show the current/configured models or choose a deployment/model ID. |
+| `/provider [foundry\|openrouter]` | Show or change providers; `/provider/` also works. |
+| `/status` | Show provider, model, policy, workspace, session path, estimated context, and limits. |
+| `/new` | Start a new conversation using the current configuration. |
+| `/help` or `/` | List every command. |
+| `/exit` | Exit the CLI. |
+
+Submitted prompts and recalled history text appear in green, as does the selected
+command-menu row. `NO_COLOR=1`, basic terminals, and redirected output omit color.
+
+For example, use `/provider openrouter`, then `/model openai/gpt-5.4`.
+The model picker lists current, environment-configured, and default model IDs;
+type any other available ID directly. Foundry expects a deployment name and
+OpenRouter expects a qualified `provider/model` ID. These commands do not make
+API requests or validate remote model access. Keys still come from the environment.
+
+Changing model/provider starts a fresh conversation and preserves the previous
+session log. `/new` does the same without changing configuration. Workspace,
+policy, context threshold, turn limit, reasoning preference, and explicit output
+limit remain in effect. Selecting the current model/provider keeps the session.
+Changes apply to this CLI process, not your shell configuration.
+
+The prompt supports cursor editing, ↑/↓ history outside the menu, and bracketed
+paste (pasted newlines become spaces and never submit automatically). Ctrl-D on
+an empty prompt exits. Basic terminals (`TERM=dumb`) and redirected input use
+plain input: type `/` and press Enter to list commands. Slash commands are local
+to the interactive prompt; a headless `-p` argument is always sent as task text.
+
 ### Use OpenRouter
 
 Set your OpenRouter key and select the provider explicitly:

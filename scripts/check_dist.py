@@ -21,15 +21,20 @@ def smoke(command, workspace):
     env = {key: value for key, value in os.environ.items()
            if key not in {"PYTHONPATH", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY", "CHIIKAWA_API_KEY",
                           "CHIIKAWA_PROVIDER", "OPENROUTER_API_KEY", "OPENROUTER_MODEL"}}
-    def run(*args):
+    def run(*args, input_text=""):
         return subprocess.run([*command, *args], cwd=workspace, env=env,
-                              input="", text=True, capture_output=True, timeout=30)
+                              input=input_text, text=True, capture_output=True, timeout=30)
     result = run("--version")
     assert result.returncode == 0 and result.stdout.strip() == f"chiikawa {VERSION}", result
     result = run("--help")
     assert result.returncode == 0 and "--resume" in result.stdout, result
     result = run()
     assert result.returncode == 0 and "C H I I K A W A" in result.stdout and "chiikawa>" in result.stdout, result
+    result = run(input_text="/\n/status\n/provider openrouter\n/model vendor/custom\n/status\n/exit\n")
+    assert result.returncode == 0 and "Commands (" in result.stdout, result
+    assert "Provider: foundry" in result.stdout and "Provider: openrouter" in result.stdout, result
+    assert "Model: vendor/custom" in result.stdout and "Output limit: 16,384" in result.stdout, result
+    assert "\033" not in result.stdout + result.stderr, result
     result = run("-p", "offline probe", "--max-turns", "0")
     assert result.returncode == 1 and "AZURE_OPENAI_ENDPOINT" in result.stderr, result
     assert "C H I I K A W A" not in result.stdout, result
