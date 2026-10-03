@@ -5,10 +5,11 @@ results; provider and application-hook failures remain visible to the caller.
 """
 
 from . import provider
+from time import monotonic
 
 
 def run_loop(model, system, messages, tools, on_event, before_tool,
-             max_turns=80, before_turn=None):
+             max_turns=80, before_turn=None, activity=False, reasoning_summary=True):
     """Run tools in order until the model answers or the turn budget expires.
 
     Mutate the caller's history in place, including after optional compaction.
@@ -23,14 +24,27 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
 
     def reply(available_tools):
         """Apply the history hook, record a model reply, and notify observers."""
-        if before_turn is not None:
-            messages[:] = before_turn(messages)
-        response = provider.complete(model, system, messages, available_tools)
+        if activity:
+            on_event("model_start", {"model": model})
+        succeeded = False
+        try:
+            if before_turn is not None:
+                messages[:] = before_turn(messages)
+            options = {"reasoning_summary": True} if activity and reasoning_summary else {}
+            response = provider.complete(model, system, messages, available_tools, **options)
+            succeeded = True
+        finally:
+            if activity:
+                on_event("model_end", {"model": model, "ok": succeeded})
         message = {"role": "assistant", "text": response["text"],
                    "tool_calls": response["tool_calls"]}
         if "provider_output" in response:
             message["provider_output"] = response["provider_output"]
+        if "reasoning_summary" in response:
+            message["reasoning_summary"] = response["reasoning_summary"]
         messages.append(message)
+        if activity and reasoning_summary and response.get("reasoning_summary"):
+            on_event("reasoning", {"text": response["reasoning_summary"]})
         on_event("assistant", message)
         return message
 
@@ -41,6 +55,7 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
 
         for call in message["tool_calls"]:
             on_event("tool_start", call)
+            started = monotonic()
             reason = before_tool(call)
             if reason is not None:
                 # Even an empty reason blocks: only None grants permission.
@@ -49,7 +64,7 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
                 result = f"ERROR: unknown tool {call['name']}"
             else:
                 try:
-                    result = str(tools[call["name"]].run(**call["args"]))
+                    result = tools[call["name"]].run(**call["args"])
                 except Exception as exc:
                     # A tool failure belongs in history, allowing model recovery.
                     result = f"ERROR: {type(exc).__name__}: {exc}"
@@ -58,7 +73,14 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
             if "call_id" in call:
                 tool_message["call_id"] = call["call_id"]
             messages.append(tool_message)
-            on_event("tool_end", tool_message)
+            if activity:
+                details = getattr(result, "details", {})
+                status = ("blocked" if reason is not None else "error" if
+                          str(result).startswith("ERROR:") or details.get("exit_code", 0) != 0 else "done")
+                on_event("tool_end", {**tool_message, "status": status, "details": details,
+                                      "elapsed": monotonic() - started})
+            else:
+                on_event("tool_end", tool_message)
 
     # One final tool-free request gives the model a chance to summarize progress.
     messages.append({"role": "user", "text": "Turn limit reached; wrap up now."})

@@ -1,0 +1,10 @@
+include INSTALL.md
+recursive-include scripts *.py
+recursive-include tests *.py
+recursive-include demos *.py
+prune products
+prune docs
+prune output
+prune scratch
+prune dist
+global-exclude __pycache__ *.py[cod] .env .env.* credential.md .DS_Store

@@ -1,0 +1,207 @@
+{
+  "sourceHash": "71aa9f1dedfc68134da1450ff1be77eb241602ba666f191722c5db29e8bd3db2",
+  "checks": 132,
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 86677,
+      "sha256": "71aa9f1dedfc68134da1450ff1be77eb241602ba666f191722c5db29e8bd3db2"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2275,
+      "sha256": "389326821b7938421ca9bc147d13ced65ad9e7294ea9d9c863f7eba2aacab8b3"
+    },
+    {
+      "path": "DESIGN.md",
+      "bytes": 4240,
+      "sha256": "20d0edab9dda4a7e0ad5eb92e25afb53382aaea9a8c8d9a2e28e495feec0a0d7"
+    },
+    {
+      "path": "REVIEW.md",
+      "bytes": 8513,
+      "sha256": "3957988ebdaf4d03fff36eecf72b184585b2f92f1edfe0cd5adb2b203cb3e23e"
+    },
+    {
+      "path": "QUALITY.md",
+      "bytes": 10309,
+      "sha256": "98c405751b737e9e5b4d908f674f06be2b30ccc593c5d3a3d129244e2c05142f"
+    },
+    {
+      "path": "tests/audit.mjs",
+      "bytes": 2193,
+      "sha256": "3e02ae619da17b2a9e7ed632cd22d0aea07d3890b6d7832489372ede6f35bfde"
+    },
+    {
+      "path": "tests/cdp.mjs",
+      "bytes": 3160,
+      "sha256": "7bae90650d25866a35412ab4a5b0914f4a9ba501989234c02bcabc128fea1d0c"
+    },
+    {
+      "path": "tests/contrast.mjs",
+      "bytes": 2211,
+      "sha256": "32b5201c2a00548259e7387a237c308ba33d705cd26edb7874a20a2e821dd32e"
+    },
+    {
+      "path": "tests/inventory.mjs",
+      "bytes": 2972,
+      "sha256": "1459c6dd9843115c3ac7717bb323113652a2cf22f36f3aa09d37ef76e6013c53"
+    },
+    {
+      "path": "tests/run.mjs",
+      "bytes": 4167,
+      "sha256": "c4001ce89b6dac44a66624824fb9e4c8f60eabb37ffeb67aa94e8b1065bd5a5e"
+    },
+    {
+      "path": "tests/verify.mjs",
+      "bytes": 26136,
+      "sha256": "6344075707133439587df3c10fb8dd0cb6f20644efba11d090c7bcf127517497"
+    },
+    {
+      "path": ".verification/baseline-results.json",
+      "bytes": 16088,
+      "sha256": "acbebd2ff02fa37eca41eed745f195cfdafcfce2766de32adbfacbcde2605614"
+    },
+    {
+      "path": ".verification/baseline-review.md",
+      "bytes": 5708,
+      "sha256": "8737bff65d21581df6fd237a962c65ed59c225498ba1327acf9b1328b890b639"
+    },
+    {
+      "path": ".verification/chrome.log",
+      "bytes": 2277,
+      "sha256": "a469fee699312ef95a1b06c064953433f2c96619e85cc410e5f4b0c066dce7d9"
+    },
+    {
+      "path": ".verification/dark-1280.png",
+      "bytes": 196223,
+      "sha256": "75acebcd0d3784a116690cd600ce5b206e8ca8cac93261a463590ce43b464d0c",
+      "dimensions": [
+        1280,
+        900
+      ]
+    },
+    {
+      "path": ".verification/dark-360.png",
+      "bytes": 87285,
+      "sha256": "876f67b2f12f39a4090f81aabec1aa4906cac8b9961bdb1c112e9072d3296150",
+      "dimensions": [
+        360,
+        900
+      ]
+    },
+    {
+      "path": ".verification/dark-768.png",
+      "bytes": 160086,
+      "sha256": "c3efaf82f8c672a6cc640094ca81fa510ed1b81434bd64383e88a1b57082cf45",
+      "dimensions": [
+        768,
+        900
+      ]
+    },
+    {
+      "path": ".verification/downloads/mare-coffee-plan.txt",
+      "bytes": 1817,
+      "sha256": "c193599c7b1d2d922ecc600895d6a46fd4f770981f84c9aa97fcdb274049da75"
+    },
+    {
+      "path": ".verification/full-1280.png",
+      "bytes": 1700507,
+      "sha256": "773ec3237bd0481f9ec914bf9168a288124846cb88dd9d9bf5c585431ab59893",
+      "dimensions": [
+        1280,
+        9209
+      ]
+    },
+    {
+      "path": ".verification/initial-audit.json",
+      "bytes": 1443,
+      "sha256": "6a56611ec26622a0f317c3a8bf01c0978e10c4b660504ebac6ca8451220829d1"
+    },
+    {
+      "path": ".verification/interrupted-run.json",
+      "bytes": 238,
+      "sha256": "7d0228db52af1be770285c3421ca8acc1736383c593ab1133dca017d9d4837ce"
+    },
+    {
+      "path": ".verification/latest-audit.json",
+      "bytes": 1384,
+      "sha256": "a11645455fedab0e5a2a5dbffd1f10f2f26610db9046b154c7dd4a13ade373a5"
+    },
+    {
+      "path": ".verification/light-1280.png",
+      "bytes": 194731,
+      "sha256": "2d6ca25dc006c468ca9708b69d140a9d69520c491529ab1711197444afdda051",
+      "dimensions": [
+        1280,
+        900
+      ]
+    },
+    {
+      "path": ".verification/light-360.png",
+      "bytes": 86318,
+      "sha256": "b276871ff04db0752a5a724b59f498673b0873080dcf52963fdd79001bcde2b0",
+      "dimensions": [
+        360,
+        900
+      ]
+    },
+    {
+      "path": ".verification/light-768.png",
+      "bytes": 158728,
+      "sha256": "4edd98dd8894c9b1512c03ee060f5c2c5ccdd910a47bc77d4e5113fe0912bfb0",
+      "dimensions": [
+        768,
+        900
+      ]
+    },
+    {
+      "path": ".verification/menu-360.png",
+      "bytes": 25345,
+      "sha256": "109138f99370e28ddb958acbba47b0e957a2e245090e2db35dd20d9298554cab",
+      "dimensions": [
+        360,
+        260
+      ]
+    },
+    {
+      "path": ".verification/menu-768.png",
+      "bytes": 15273,
+      "sha256": "0437df3ea34a66c836740f5a572b1baa0d16a84248b54c0a797f114a8a9c8584",
+      "dimensions": [
+        768,
+        300
+      ]
+    },
+    {
+      "path": ".verification/planner-360.png",
+      "bytes": 77149,
+      "sha256": "fa961739a1354cf69906fe1e1b4b5c22247b48979d61e0c787b5d9cbc92a7016",
+      "dimensions": [
+        360,
+        900
+      ]
+    },
+    {
+      "path": ".verification/print.pdf",
+      "bytes": 744836,
+      "sha256": "6973487360511e125ec166801cdb5eed25de42faba1c9d3a4350bab3f68333fd"
+    },
+    {
+      "path": ".verification/results.json",
+      "bytes": 24017,
+      "sha256": "e62f82b9a7d6d3a6163997d76565459b5e3f642739068a773f455989f279ccfa"
+    },
+    {
+      "path": ".verification/run-status.json",
+      "bytes": 191,
+      "sha256": "016a68ceff70c8b078005d5f0dc5f0f008d0946b975bf1b3641aa22185d61483"
+    },
+    {
+      "path": ".verification/server.log",
+      "bytes": 98,
+      "sha256": "5cccdfb259a7d93a23d919a56d163c74fdd9338f651823f12a67b61a69166468"
+    }
+  ],
+  "note": "All listed files read back. PNG/PDF headers and JSON/UTF-8 validated; source/docs/evidence inspected. Binary validation is not a human visual review. This manifest excludes itself to avoid a circular hash."
+}

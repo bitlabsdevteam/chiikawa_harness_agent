@@ -1,0 +1,23 @@
+PASS real requestAnimationFrame loop stays ready until Start
+PASS 360px layout, visible content, density and controls
+PASS 768px layout, visible content, density and controls
+PASS 1280px layout, visible content, density and controls
+PASS overlay heading contrast stays above 4.5:1, even over the lightest food pixel
+PASS real animation frames advance on Start, and pause freezes
+PASS Start announces coordinates; a plain step is silent and does not rewrite score
+PASS keyboard arrows/WASD, reverse rejection and double-turn lock
+PASS keyboard controls are scoped to the cabinet, not guide navigation
+PASS pause clears queued turns, disables direction pad and moves focus visibly
+PASS five real foods change pace and persist the best before game over
+PASS short delays move once, long stalls pause without catch-up
+PASS visibility loss and window blur pause; returning does not resume
+PASS canvas resize at DPR 2 preserves a paused round
+PASS touch event steers exactly once; direction button retains keyboard focus
+PASS wall ending and Restart expose explicit actions without automatic play
+PASS best survives reload; malformed storage is safely ignored
+PASS storage read/write failures keep play usable and retain the visit-only best
+PASS reduced motion, explicit focus indicator and accessible names
+PASS no JavaScript exceptions or external page dependencies
+PASS direct self-contained file opens, plays and persists its own best
+
+21 browser checks passed. Evidence: verification/results.json

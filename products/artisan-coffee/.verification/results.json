@@ -1,0 +1,846 @@
+{
+  "sourceHash": "71aa9f1dedfc68134da1450ff1be77eb241602ba666f191722c5db29e8bd3db2",
+  "browser": "Chrome/154.0.8037.95",
+  "passed": 132,
+  "layouts": [
+    {
+      "width": 360,
+      "scrollWidth": 345,
+      "sections": 11,
+      "visibleWords": 2412,
+      "paragraphWords": 1602,
+      "visibleSVGs": 4,
+      "svgShapes": [
+        27,
+        19,
+        22,
+        22
+      ],
+      "duplicateIds": [],
+      "brokenLinks": [],
+      "overflows": [],
+      "titleLines": 3,
+      "smallButtons": []
+    },
+    {
+      "width": 768,
+      "scrollWidth": 753,
+      "sections": 11,
+      "visibleWords": 2412,
+      "paragraphWords": 1602,
+      "visibleSVGs": 4,
+      "svgShapes": [
+        27,
+        19,
+        22,
+        22
+      ],
+      "duplicateIds": [],
+      "brokenLinks": [],
+      "overflows": [],
+      "titleLines": 3,
+      "smallButtons": []
+    },
+    {
+      "width": 1280,
+      "scrollWidth": 1265,
+      "sections": 11,
+      "visibleWords": 2421,
+      "paragraphWords": 1602,
+      "visibleSVGs": 4,
+      "svgShapes": [
+        27,
+        19,
+        22,
+        22
+      ],
+      "duplicateIds": [],
+      "brokenLinks": [],
+      "overflows": [],
+      "titleLines": 2,
+      "smallButtons": []
+    }
+  ],
+  "checks": [
+    {
+      "name": "360: no horizontal overflow",
+      "evidence": []
+    },
+    {
+      "name": "360: at least nine meaningful sections",
+      "evidence": 11
+    },
+    {
+      "name": "360: over 1,400 visible paragraph words",
+      "evidence": 1602
+    },
+    {
+      "name": "360: four visible substantial SVGs",
+      "evidence": [
+        27,
+        19,
+        22,
+        22
+      ]
+    },
+    {
+      "name": "360: unique IDs and valid anchor targets",
+      "evidence": ""
+    },
+    {
+      "name": "360: 44px active button targets",
+      "evidence": []
+    },
+    {
+      "name": "360: deliberate hero line count",
+      "evidence": 3
+    },
+    {
+      "name": "360: light theme text contrast",
+      "evidence": {
+        "checked": 254,
+        "minimum": 4.5,
+        "failures": []
+      }
+    },
+    {
+      "name": "360: dark theme text contrast",
+      "evidence": {
+        "checked": 254,
+        "minimum": 4.99,
+        "failures": []
+      }
+    },
+    {
+      "name": "360: utility typography at least 12px",
+      "evidence": ""
+    },
+    {
+      "name": "360: focus rings contrast with cobalt and paper",
+      "evidence": [
+        {
+          "selector": "#billing-monthly",
+          "ratio": 10.22,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "#billing-annual",
+          "ratio": 10.22,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"drift\"]",
+          "ratio": 7.28,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"daily\"]",
+          "ratio": 6.82,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"house\"]",
+          "ratio": 7.28,
+          "width": 3,
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "name": "768: no horizontal overflow",
+      "evidence": []
+    },
+    {
+      "name": "768: at least nine meaningful sections",
+      "evidence": 11
+    },
+    {
+      "name": "768: over 1,400 visible paragraph words",
+      "evidence": 1602
+    },
+    {
+      "name": "768: four visible substantial SVGs",
+      "evidence": [
+        27,
+        19,
+        22,
+        22
+      ]
+    },
+    {
+      "name": "768: unique IDs and valid anchor targets",
+      "evidence": ""
+    },
+    {
+      "name": "768: 44px active button targets",
+      "evidence": []
+    },
+    {
+      "name": "768: deliberate hero line count",
+      "evidence": 3
+    },
+    {
+      "name": "768: light theme text contrast",
+      "evidence": {
+        "checked": 254,
+        "minimum": 4.5,
+        "failures": []
+      }
+    },
+    {
+      "name": "768: dark theme text contrast",
+      "evidence": {
+        "checked": 254,
+        "minimum": 4.99,
+        "failures": []
+      }
+    },
+    {
+      "name": "768: utility typography at least 12px",
+      "evidence": ""
+    },
+    {
+      "name": "768: focus rings contrast with cobalt and paper",
+      "evidence": [
+        {
+          "selector": "#billing-monthly",
+          "ratio": 10.22,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "#billing-annual",
+          "ratio": 10.22,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"drift\"]",
+          "ratio": 7.28,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"daily\"]",
+          "ratio": 6.82,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"house\"]",
+          "ratio": 7.28,
+          "width": 3,
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "name": "Tablet tiers are editorial two-column rows",
+      "evidence": ""
+    },
+    {
+      "name": "1280: no horizontal overflow",
+      "evidence": []
+    },
+    {
+      "name": "1280: at least nine meaningful sections",
+      "evidence": 11
+    },
+    {
+      "name": "1280: over 1,400 visible paragraph words",
+      "evidence": 1602
+    },
+    {
+      "name": "1280: four visible substantial SVGs",
+      "evidence": [
+        27,
+        19,
+        22,
+        22
+      ]
+    },
+    {
+      "name": "1280: unique IDs and valid anchor targets",
+      "evidence": ""
+    },
+    {
+      "name": "1280: 44px active button targets",
+      "evidence": []
+    },
+    {
+      "name": "1280: deliberate hero line count",
+      "evidence": 2
+    },
+    {
+      "name": "1280: light theme text contrast",
+      "evidence": {
+        "checked": 258,
+        "minimum": 4.5,
+        "failures": []
+      }
+    },
+    {
+      "name": "1280: dark theme text contrast",
+      "evidence": {
+        "checked": 258,
+        "minimum": 4.99,
+        "failures": []
+      }
+    },
+    {
+      "name": "1280: utility typography at least 12px",
+      "evidence": ""
+    },
+    {
+      "name": "1280: focus rings contrast with cobalt and paper",
+      "evidence": [
+        {
+          "selector": "#billing-monthly",
+          "ratio": 10.22,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "#billing-annual",
+          "ratio": 10.22,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"drift\"]",
+          "ratio": 7.28,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"daily\"]",
+          "ratio": 6.82,
+          "width": 3,
+          "style": "solid"
+        },
+        {
+          "selector": "[data-select-tier=\"house\"]",
+          "ratio": 7.28,
+          "width": 3,
+          "style": "solid"
+        }
+      ]
+    },
+    {
+      "name": "Sticky masthead stays at viewport top",
+      "evidence": ""
+    },
+    {
+      "name": "Anchor clears masthead",
+      "evidence": ""
+    },
+    {
+      "name": "Mobile nav starts collapsed",
+      "evidence": ""
+    },
+    {
+      "name": "Mobile menu opens and focuses first link",
+      "evidence": ""
+    },
+    {
+      "name": "Escape closes nav and restores menu focus",
+      "evidence": ""
+    },
+    {
+      "name": "Mobile destination receives focus and menu closes",
+      "evidence": ""
+    },
+    {
+      "name": "Tab out of mobile nav closes it",
+      "evidence": ""
+    },
+    {
+      "name": "Resizing to desktop resets nav expansion",
+      "evidence": ""
+    },
+    {
+      "name": "360×260: short-screen menu remains reachable",
+      "evidence": {
+        "bottom": 259,
+        "linkBottom": 257.75,
+        "height": 260,
+        "scrollable": true,
+        "overflow": "auto"
+      }
+    },
+    {
+      "name": "768×300: short-screen menu remains reachable",
+      "evidence": {
+        "bottom": 299,
+        "linkBottom": 297.75,
+        "height": 300,
+        "scrollable": true,
+        "overflow": "auto"
+      }
+    },
+    {
+      "name": "320px reflow has no horizontal overflow",
+      "evidence": ""
+    },
+    {
+      "name": "Card accessible names begin with the visible action",
+      "evidence": ""
+    },
+    {
+      "name": "Plan updates have one accessible announcement channel",
+      "evidence": ""
+    },
+    {
+      "name": "Brew tab press: one selected panel",
+      "evidence": ""
+    },
+    {
+      "name": "Brew tab moka: one selected panel",
+      "evidence": ""
+    },
+    {
+      "name": "Brew tab cold: one selected panel",
+      "evidence": ""
+    },
+    {
+      "name": "Brew tab pour: one selected panel",
+      "evidence": ""
+    },
+    {
+      "name": "Tabs: ArrowLeft wraps to last",
+      "evidence": ""
+    },
+    {
+      "name": "Tabs: Home selects first",
+      "evidence": ""
+    },
+    {
+      "name": "Tabs: End selects last",
+      "evidence": ""
+    },
+    {
+      "name": "Tabs: ArrowRight wraps",
+      "evidence": ""
+    },
+    {
+      "name": "Tabs: Tab enters active panel",
+      "evidence": ""
+    },
+    {
+      "name": "FAQ 1 toggles natively",
+      "evidence": ""
+    },
+    {
+      "name": "FAQ 2 toggles natively",
+      "evidence": ""
+    },
+    {
+      "name": "FAQ 3 toggles natively",
+      "evidence": ""
+    },
+    {
+      "name": "FAQ 4 toggles natively",
+      "evidence": ""
+    },
+    {
+      "name": "FAQ 5 toggles natively",
+      "evidence": ""
+    },
+    {
+      "name": "FAQ 6 toggles natively",
+      "evidence": ""
+    },
+    {
+      "name": "FAQ works with keyboard Enter",
+      "evidence": ""
+    },
+    {
+      "name": "annual tier 1: price",
+      "evidence": {
+        "price": "₹675",
+        "bill": "₹8,100 billed annually, upfront",
+        "saving": "Save ₹900 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 1: full billing and saving",
+      "evidence": {
+        "price": "₹675",
+        "bill": "₹8,100 billed annually, upfront",
+        "saving": "Save ₹900 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 2: price",
+      "evidence": {
+        "price": "₹1,260",
+        "bill": "₹15,120 billed annually, upfront",
+        "saving": "Save ₹1,680 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 2: full billing and saving",
+      "evidence": {
+        "price": "₹1,260",
+        "bill": "₹15,120 billed annually, upfront",
+        "saving": "Save ₹1,680 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 3: price",
+      "evidence": {
+        "price": "₹2,340",
+        "bill": "₹28,080 billed annually, upfront",
+        "saving": "Save ₹3,120 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 3: full billing and saving",
+      "evidence": {
+        "price": "₹2,340",
+        "bill": "₹28,080 billed annually, upfront",
+        "saving": "Save ₹3,120 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "monthly tier 1: price",
+      "evidence": {
+        "price": "₹750",
+        "bill": "₹750 billed monthly",
+        "saving": "₹0 annual savings on monthly billing",
+        "label": "/ month"
+      }
+    },
+    {
+      "name": "monthly tier 1: full billing and saving",
+      "evidence": {
+        "price": "₹750",
+        "bill": "₹750 billed monthly",
+        "saving": "₹0 annual savings on monthly billing",
+        "label": "/ month"
+      }
+    },
+    {
+      "name": "monthly tier 2: price",
+      "evidence": {
+        "price": "₹1,400",
+        "bill": "₹1,400 billed monthly",
+        "saving": "₹0 annual savings on monthly billing",
+        "label": "/ month"
+      }
+    },
+    {
+      "name": "monthly tier 2: full billing and saving",
+      "evidence": {
+        "price": "₹1,400",
+        "bill": "₹1,400 billed monthly",
+        "saving": "₹0 annual savings on monthly billing",
+        "label": "/ month"
+      }
+    },
+    {
+      "name": "monthly tier 3: price",
+      "evidence": {
+        "price": "₹2,600",
+        "bill": "₹2,600 billed monthly",
+        "saving": "₹0 annual savings on monthly billing",
+        "label": "/ month"
+      }
+    },
+    {
+      "name": "monthly tier 3: full billing and saving",
+      "evidence": {
+        "price": "₹2,600",
+        "bill": "₹2,600 billed monthly",
+        "saving": "₹0 annual savings on monthly billing",
+        "label": "/ month"
+      }
+    },
+    {
+      "name": "annual tier 1: price",
+      "evidence": {
+        "price": "₹675",
+        "bill": "₹8,100 billed annually, upfront",
+        "saving": "Save ₹900 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 1: full billing and saving",
+      "evidence": {
+        "price": "₹675",
+        "bill": "₹8,100 billed annually, upfront",
+        "saving": "Save ₹900 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 2: price",
+      "evidence": {
+        "price": "₹1,260",
+        "bill": "₹15,120 billed annually, upfront",
+        "saving": "Save ₹1,680 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 2: full billing and saving",
+      "evidence": {
+        "price": "₹1,260",
+        "bill": "₹15,120 billed annually, upfront",
+        "saving": "Save ₹1,680 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 3: price",
+      "evidence": {
+        "price": "₹2,340",
+        "bill": "₹28,080 billed annually, upfront",
+        "saving": "Save ₹3,120 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "annual tier 3: full billing and saving",
+      "evidence": {
+        "price": "₹2,340",
+        "bill": "₹28,080 billed annually, upfront",
+        "saving": "Save ₹3,120 / year · 10% less",
+        "label": "/ month equiv."
+      }
+    },
+    {
+      "name": "All six add buttons populate correct subtotal",
+      "evidence": "Coorg, unhurried.\n1 × 250 g · ₹480\nWhole bean\n−\n1\n+\nChikmagalur light.\n1 × 250 g · ₹520\nWhole bean\n−\n1\n+\nBaba's bright side.\n1 × 250 g · ₹560\nWhole bean\n−\n1\n+\nAraku afternoon.\n1 × 250 g · ₹620\nWhole bean\n−\n1\n+\nNilgiri daybreak.\n1 × 250 g · ₹540\nWhole bean\n−\n1\n+\nAfter the monsoon.\n1 × 250 g · ₹580\nWhole bean\n−\n1\n+"
+    },
+    {
+      "name": "Single-bag weight and cup estimate",
+      "evidence": ""
+    },
+    {
+      "name": "Quantity plus recalculates subtotal",
+      "evidence": ""
+    },
+    {
+      "name": "Quantity focus survives rerender",
+      "evidence": ""
+    },
+    {
+      "name": "Quantity zero removes row and keeps visible focus",
+      "evidence": ""
+    },
+    {
+      "name": "Tier drift: selection leads to profile",
+      "evidence": ""
+    },
+    {
+      "name": "Tier daily: selection leads to profile",
+      "evidence": ""
+    },
+    {
+      "name": "Tier house: selection leads to profile",
+      "evidence": ""
+    },
+    {
+      "name": "Origin and grind update subscription and bags",
+      "evidence": ""
+    },
+    {
+      "name": "Billing switch updates existing plan to monthly",
+      "evidence": ""
+    },
+    {
+      "name": "Billing switch updates existing plan to annual",
+      "evidence": ""
+    },
+    {
+      "name": "Nav distinguishes bags from subscription",
+      "evidence": ""
+    },
+    {
+      "name": "Populated mobile planner has no overflow",
+      "evidence": ""
+    },
+    {
+      "name": "Quantity and removal targets are 44px",
+      "evidence": ""
+    },
+    {
+      "name": "Planner recipe pour syncs tab without changing grind",
+      "evidence": ""
+    },
+    {
+      "name": "Planner recipe press syncs tab without changing grind",
+      "evidence": ""
+    },
+    {
+      "name": "Planner recipe moka syncs tab without changing grind",
+      "evidence": ""
+    },
+    {
+      "name": "Planner recipe cold syncs tab without changing grind",
+      "evidence": ""
+    },
+    {
+      "name": "Brew tab updates the explicit planner recipe",
+      "evidence": ""
+    },
+    {
+      "name": "Inline fallback includes chosen recipe",
+      "evidence": ""
+    },
+    {
+      "name": "Save creates an actual UTF-8 plan file",
+      "evidence": "MARÉ / MY COFFEE NOTE\nA proposed coffee plan, not an order.\nPrices in INR. Shipping and taxes are not calculated.\n\nGrind: French press grind\n\nSINGLE BAGS\nChikmagalur light. — 1 × 250 g at ₹520 = ₹520\nBaba's bright side. — 1 × 250 g at ₹560 = ₹560\nAra"
+    },
+    {
+      "name": "Saved plan has arithmetic, quantity, grind, origin and full annual charge",
+      "evidence": "MARÉ / MY COFFEE NOTE\nA proposed coffee plan, not an order.\nPrices in INR. Shipping and taxes are not calculated.\n\nGrind: French press grind\n\nSINGLE BAGS\nChikmagalur light. — 1 × 250 g at ₹520 = ₹520\nBaba's bright side. — 1 × 250 g at ₹560 = ₹560\nAraku afternoon. — 1 × 250 g at ₹620 = ₹620\nNilgiri daybreak. — 1 × 250 g at ₹540 = ₹540\nAfter the monsoon. — 1 × 250 g at ₹580 = ₹580\nSingle-bag subtotal: ₹2,820\nSingle-bag weight: 1250 g (about 78 cups at 16 g)\n\nSUBSCRIPTION\nThe Daily Tide: 1 kg each month (4 × 250 g)\nProfile: Araku afternoon.\nBilling: annual\nMonthly equivalent: ₹1,260\nAnnual upfront payment: ₹15,120\nAnnual saving vs 12 monthly payments: ₹1,680\n\nBREW NOTE / FRENCH PRESS\nA full-bodied, easy morning.\nThe French press keeps more oils in the cup. Use a medium-coarse grind rather than huge, uneven chunks. Coorg or Nilgiri is a comfortable place to begin.\n\nCoffee / water: 30 g / 480 g\nWater: 92–96°C\nTotal time: 6–8 minutes\n\n1. Warm the glass with hot water, empty it and add your grounds. Set the press on a stable, heat-safe surface.\n2. Add all 480 g of water, saturating the grounds. Rest the lid on top without pushing the plunger down. Wait four minutes.\n3. Stir the floating crust gently. Scoop off excess foam if you prefer a cleaner cup, then allow two to four minutes for grounds to settle.\n4. Lower the plunger slowly without forcing it. Pour gently into cups or a separate server rather than leaving brewed coffee on the grounds.\n\nNext cup: muddy texture often comes from fine particles and rough pouring. Letting the coffee settle can help more than grinding dramatically coarser.\n\nNo stock reservation, payment or recurring charge has been created.\nProfiles and prices are indicative; a future release requires confirmed lots and terms."
+    },
+    {
+      "name": "Saved plan includes recipe and no-order disclaimer",
+      "evidence": ""
+    },
+    {
+      "name": "Saved recipe has numbered steps and labelled measurements",
+      "evidence": "MARÉ / MY COFFEE NOTE\nA proposed coffee plan, not an order.\nPrices in INR. Shipping and taxes are not calculated.\n\nGrind: French press grind\n\nSINGLE BAGS\nChikmagalur light. — 1 × 250 g at ₹520 = ₹520\nBaba's bright side. — 1 × 250 g at ₹560 = ₹560\nAraku afternoon. — 1 × 250 g at ₹620 = ₹620\nNilgiri daybreak. — 1 × 250 g at ₹540 = ₹540\nAfter the monsoon. — 1 × 250 g at ₹580 = ₹580\nSingle-bag subtotal: ₹2,820\nSingle-bag weight: 1250 g (about 78 cups at 16 g)\n\nSUBSCRIPTION\nThe Daily Tide: 1 kg each month (4 × 250 g)\nProfile: Araku afternoon.\nBilling: annual\nMonthly equivalent: ₹1,260\nAnnual upfront payment: ₹15,120\nAnnual saving vs 12 monthly payments: ₹1,680\n\nBREW NOTE / FRENCH PRESS\nA full-bodied, easy morning.\nThe French press keeps more oils in the cup. Use a medium-coarse grind rather than huge, uneven chunks. Coorg or Nilgiri is a comfortable place to begin.\n\nCoffee / water: 30 g / 480 g\nWater: 92–96°C\nTotal time: 6–8 minutes\n\n1. Warm the glass with hot water, empty it and add your grounds. Set the press on a stable, heat-safe surface.\n2. Add all 480 g of water, saturating the grounds. Rest the lid on top without pushing the plunger down. Wait four minutes.\n3. Stir the floating crust gently. Scoop off excess foam if you prefer a cleaner cup, then allow two to four minutes for grounds to settle.\n4. Lower the plunger slowly without forcing it. Pour gently into cups or a separate server rather than leaving brewed coffee on the grounds.\n\nNext cup: muddy texture often comes from fine particles and rough pouring. Letting the coffee settle can help more than grinding dramatically coarser.\n\nNo stock reservation, payment or recurring charge has been created.\nProfiles and prices are indicative; a future release requires confirmed lots and terms."
+    },
+    {
+      "name": "Readable fallback exactly matches saved file",
+      "evidence": ""
+    },
+    {
+      "name": "Remove subscription keeps single bags",
+      "evidence": ""
+    },
+    {
+      "name": "Clear empties plan and disables empty actions",
+      "evidence": ""
+    },
+    {
+      "name": "Undo clear restores single bags and subtotal",
+      "evidence": ""
+    },
+    {
+      "name": "Undo restores annual tier, profile and grind",
+      "evidence": ""
+    },
+    {
+      "name": "New selection invalidates undo instead of replacing new work",
+      "evidence": ""
+    },
+    {
+      "name": "Quantity guard caps bags at twenty",
+      "evidence": ""
+    },
+    {
+      "name": "Theme toggle updates persistence and accessible state",
+      "evidence": ""
+    },
+    {
+      "name": "Dark mode persists on reload",
+      "evidence": ""
+    },
+    {
+      "name": "Light mode persists on reload",
+      "evidence": ""
+    },
+    {
+      "name": "Invalid saved theme falls back to system dark",
+      "evidence": ""
+    },
+    {
+      "name": "Unpinned theme follows system changes live",
+      "evidence": ""
+    },
+    {
+      "name": "Explicit theme choice overrides subsequent system changes",
+      "evidence": ""
+    },
+    {
+      "name": "Theme preference syncs from another real tab",
+      "evidence": ""
+    },
+    {
+      "name": "Blocked storage still allows theme and planner",
+      "evidence": ""
+    },
+    {
+      "name": "Planner survives blocked storage",
+      "evidence": ""
+    },
+    {
+      "name": "No-JavaScript fallback exposes four recipes without dead buttons",
+      "evidence": {
+        "notice": true,
+        "recipes": 4,
+        "buttons": 0
+      }
+    },
+    {
+      "name": "Standalone file URL runs planner and annual toggle",
+      "evidence": ""
+    },
+    {
+      "name": "Dark-mode printing uses paper, dark ink and all four recipes",
+      "evidence": {
+        "background": "rgb(255, 255, 255)",
+        "ink": "rgb(24, 45, 43)",
+        "scheme": "light",
+        "recipes": 4,
+        "settings": "Grind: Whole bean. Recipe: Pour-over."
+      }
+    },
+    {
+      "name": "Print text contrast meets its threshold",
+      "evidence": {
+        "checked": 220,
+        "minimum": 5.39,
+        "failures": []
+      }
+    },
+    {
+      "name": "Print preparation expands all FAQ answers",
+      "evidence": ""
+    },
+    {
+      "name": "Browser produces an actual print-ready PDF",
+      "evidence": {
+        "bytes": 744836
+      }
+    },
+    {
+      "name": "Printing restores disclosure state",
+      "evidence": ""
+    },
+    {
+      "name": "Full-page evidence captured in the normal test run",
+      "evidence": {
+        "height": 9209
+      }
+    },
+    {
+      "name": "DevTools errors reject instead of hanging",
+      "evidence": ""
+    },
+    {
+      "name": "No uncaught JavaScript errors",
+      "evidence": []
+    },
+    {
+      "name": "No external network dependencies",
+      "evidence": []
+    }
+  ]
+}

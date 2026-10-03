@@ -1,0 +1,80 @@
+[
+  {
+    "width": 360,
+    "scrollWidth": 345,
+    "sections": 11,
+    "paragraphWords": 1578,
+    "svgs": 4,
+    "visibleSVGs": 4,
+    "smallControls": [
+      {
+        "name": "Switch to light mode",
+        "width": 40,
+        "height": 40
+      }
+    ],
+    "overflow": [],
+    "heroTitle": {
+      "x": 18,
+      "y": 145,
+      "width": 309,
+      "height": 239.375,
+      "top": 145,
+      "right": 327,
+      "bottom": 384.375,
+      "left": 18
+    }
+  },
+  {
+    "width": 768,
+    "scrollWidth": 753,
+    "sections": 11,
+    "paragraphWords": 1578,
+    "svgs": 4,
+    "visibleSVGs": 3,
+    "smallControls": [
+      {
+        "name": "Switch to light mode",
+        "width": 42,
+        "height": 42
+      }
+    ],
+    "overflow": [],
+    "heroTitle": {
+      "x": 24,
+      "y": 153,
+      "width": 349.828125,
+      "height": 176.390625,
+      "top": 153,
+      "right": 373.828125,
+      "bottom": 329.390625,
+      "left": 24
+    }
+  },
+  {
+    "width": 1280,
+    "scrollWidth": 1265,
+    "sections": 11,
+    "paragraphWords": 1578,
+    "svgs": 4,
+    "visibleSVGs": 4,
+    "smallControls": [
+      {
+        "name": "Switch to light mode",
+        "width": 42,
+        "height": 42
+      }
+    ],
+    "overflow": [],
+    "heroTitle": {
+      "x": 52.5,
+      "y": 222.34375,
+      "width": 577.75,
+      "height": 256.03125,
+      "top": 222.34375,
+      "right": 630.25,
+      "bottom": 478.375,
+      "left": 52.5
+    }
+  }
+]

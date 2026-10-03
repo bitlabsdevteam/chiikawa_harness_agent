@@ -55,11 +55,13 @@ def _to_wire(messages):
     return items
 
 
-def complete(model, system, messages, tools):
+def complete(model, system, messages, tools, reasoning_summary=False):
     """Return visible text, correlated calls, token usage, and replayable output."""
     body = {"model": model, "instructions": system, "input": _to_wire(messages),
             "max_output_tokens": 65536, "store": False,
             "include": ["reasoning.encrypted_content"]}
+    if reasoning_summary:
+        body["reasoning"] = {"effort": "medium", "summary": "auto"}
     # Astra reasoning does not accept temperature; use its default reasoning effort.
     if tools:
         body["tools"] = [{"type": "function", **t["schema"], "strict": False} for t in tools]
@@ -67,10 +69,13 @@ def complete(model, system, messages, tools):
     if response.get("status") != "completed":
         detail = response.get("error") or response.get("incomplete_details") or {}
         raise RuntimeError(f"Foundry response {response.get('status', 'missing status')}: {detail}")
-    text, calls = [], []
+    text, calls, summaries = [], [], []
     output = response.get("output", [])
     for item in output:
-        if item["type"] == "message":
+        if item["type"] == "reasoning":
+            summaries.extend(part["text"] for part in item.get("summary", [])
+                             if part.get("type") == "summary_text" and isinstance(part.get("text"), str))
+        elif item["type"] == "message":
             for part in item.get("content", []):
                 if part["type"] == "output_text":
                     text.append(part["text"])
@@ -84,9 +89,12 @@ def complete(model, system, messages, tools):
     if not text and not calls:
         raise RuntimeError("Foundry returned no visible text or function calls.")
     usage = response.get("usage") or {}
-    return {"text": "".join(text), "tool_calls": calls, "provider_output": output,
-            "usage": {"input": usage.get("input_tokens", 0),
-                      "output": usage.get("output_tokens", 0)}}
+    result = {"text": "".join(text), "tool_calls": calls, "provider_output": output,
+              "usage": {"input": usage.get("input_tokens", 0),
+                        "output": usage.get("output_tokens", 0)}}
+    if summaries:
+        result["reasoning_summary"] = "\n\n".join(summaries)
+    return result
 
 
 def _post(url, body, retries=5):

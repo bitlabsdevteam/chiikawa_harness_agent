@@ -5,6 +5,7 @@ not a filesystem sandbox; use the separate policy hook to control execution.
 """
 
 import fnmatch
+import difflib
 import inspect
 import os
 import re
@@ -15,6 +16,36 @@ from pathlib import Path
 from typing import Callable
 
 IGNORED = {".git", "node_modules", "__pycache__", ".venv"}
+
+
+class ToolResult(str):
+    """Keep model-facing text compatible while attaching terminal presentation data."""
+
+    def __new__(cls, text, **details):
+        result = super().__new__(cls, text)
+        result.details = details
+        return result
+
+
+def change_details(path, before, after, created=False):
+    """Bound diff work and output; calculate changes from the actual file contents."""
+    details = {"path": path, "operation": "created" if created else "updated"}
+    if before is None or len(before) + len(after) > 128_000:
+        return {**details, "diff_note": "Diff omitted (large or non-text file)."}
+    old_lines, new_lines = before.splitlines(), after.splitlines()
+    added = removed = 0
+    for tag, i, j, k, l in difflib.SequenceMatcher(None, old_lines, new_lines).get_opcodes():
+        if tag in ("insert", "replace"):
+            added += l - k
+        if tag in ("delete", "replace"):
+            removed += j - i
+    preview = []
+    for line in difflib.unified_diff(old_lines, new_lines, fromfile=path, tofile=path, n=2, lineterm=""):
+        if len(preview) == 40:
+            preview.append("... diff truncated ...")
+            break
+        preview.append(line[:240])
+    return {**details, "added": added, "removed": removed, "diff": preview}
 
 
 @dataclass
@@ -75,15 +106,24 @@ def core_tools(workdir) -> list[Tool]:
         result = [f"{index}\t{line}" for index, line in enumerate(lines[:4000], 1)]
         if len(lines) > 4000:
             result.append(f"... truncated; {len(lines)} total lines")
-        return "\n".join(result)
+        return ToolResult("\n".join(result), path=path, lines=len(lines))
 
     @tool("Write a UTF-8 file", path="Destination path", content="Complete file contents")
     def write_file(path, content):
         """Create missing parents and report the number of characters written."""
         target = resolve(path)
         target.parent.mkdir(parents=True, exist_ok=True)
+        created = not target.exists()
+        before = "" if created else None
+        if not created:
+            try:
+                if target.stat().st_size <= 128_000:
+                    before = target.read_text(encoding="utf-8")
+            except (OSError, UnicodeError):
+                pass  # A preview must not prevent an otherwise permitted overwrite.
         target.write_text(content, encoding="utf-8")
-        return f"Wrote {len(content)} chars to {path}"
+        return ToolResult(f"Wrote {len(content)} chars to {path}",
+                          **change_details(path, before, content, created))
 
     @tool("Replace one exact snippet", path="File path", old="Unique existing text", new="Replacement text")
     def edit_file(path, old, new):
@@ -96,8 +136,9 @@ def core_tools(workdir) -> list[Tool]:
             return "ERROR: snippet not found — read the file and copy it exactly"
         if count != 1:
             return f"ERROR: snippet appears {count} times — include more context to make it unique"
-        target.write_text(content.replace(old, new, 1), encoding="utf-8")
-        return f"Edited {path}"
+        updated = content.replace(old, new, 1)
+        target.write_text(updated, encoding="utf-8")
+        return ToolResult(f"Edited {path}", **change_details(path, content, updated))
 
     @tool("Run a shell command in the workspace", command="Shell command", timeout="Timeout in seconds")
     def bash(command, timeout="120"):
@@ -125,7 +166,7 @@ def core_tools(workdir) -> list[Tool]:
         output = stdout + stderr
         if len(output) > 12000:
             output = output[:6000] + "\n... output truncated ...\n" + output[-6000:]
-        return output or f"(exit {process.returncode}, no output)"
+        return ToolResult(output or f"(exit {process.returncode}, no output)", exit_code=process.returncode)
 
     @tool("List workspace files", pattern="Glob matched against relative path or basename")
     def list_files(pattern="**/*"):

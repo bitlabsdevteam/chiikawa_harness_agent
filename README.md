@@ -39,8 +39,8 @@ python3 -m chiikawa -d ./scratch --resume -p "Review the result and fix any bugs
 Use `-m` to override the model, `--mode read-only` for file inspection, or
 `--max-turns` to change the default 120-turn budget. Ctrl-D exits; Ctrl-C exits
 with status 130 and explains how to resume. A missing `--resume` session is an
-error. The CLI prints bounded visible tool activity and never prints opaque
-provider reasoning. Its “jail directory” constrains file tools; shell commands
+error. The CLI shows live activity and public reasoning summaries when returned
+by the provider. Its “jail directory” constrains file tools; shell commands
 are **not OS-sandboxed**. Use a disposable workspace with appropriate permissions.
 
 Interactive startup displays a compact Chiikawa mascot and wordmark:
@@ -71,6 +71,42 @@ as a reference ([reference image](https://www.anime-chiikawa.jp/images/icon.png)
 accessed October 3, 2026). Chiikawa is a character created by Nagano; the project
 is not affiliated with the creator or anime production.
 
+### Terminal activity
+
+The CLI displays a waiting indicator, brief progress updates, public reasoning
+summaries, tool names, file paths, and completion status. File reads have bounded
+previews; successful edits and writes show actual before/after diffs, capped at
+40 lines. Shell commands show their output preview and exit code. Blocked and
+failed operations are labeled explicitly and do not display successful diffs.
+
+```text
+Progress
+    I'll read the greeting, update it, and run it to verify.
+> Read hello.py [read_file]
+  Done: Read hello.py · 1 line (0.0s)
+    1       print("hello")
+> Edit hello.py [edit_file]
+  Done: Edit hello.py · updated +1 -1 (0.0s)
+    -print("hello")
+    +print("hello from Chiikawa")
+> Run shell command [bash]
+    python3 hello.py
+  Done: Run shell command · exit 0 (0.0s)
+    hello from Chiikawa
+```
+
+Activity goes to **stderr** and completed assistant answers to **stdout**, so
+`chiikawa -p "your task" > answer.txt` keeps the activity visible in the terminal.
+Non-terminal output has no spinner or ANSI formatting; `NO_COLOR` disables colors.
+Summaries arrive when a model response completes, and command output arrives
+when that command finishes; this is not token or subprocess-output streaming.
+
+The CLI requests medium reasoning effort with a public summary. Summaries can
+be absent depending on the model and task. Use `--no-reasoning` to omit that
+request and use your deployment's default effort. Encrypted provider state and
+private reasoning are never rendered. See the official
+[reasoning-summary API documentation](https://developers.openai.com/api/docs/guides/reasoning#reasoning-summaries).
+
 For this repository's live testing, explicitly load the ignored configuration
 supplied in `credential.md`:
 
@@ -100,8 +136,9 @@ same available dice tool and should return text without calling it.
 `chiikawa/provider.py` posts to Foundry's `/openai/v1/responses` endpoint using
 an `api-key` header. It translates function schemas, JSON arguments, visible
 output, and token usage. Astra tool calling requires the Responses API; the
-request omits unsupported `temperature` and uses the model's default reasoning
-effort. The output token limit remains 65,536.
+request omits unsupported `temperature`. Library calls use the model's default
+reasoning effort; the CLI opts into medium effort and public summaries unless
+`--no-reasoning` is supplied. The output token limit remains 65,536.
 
 Assistant messages retain the response's raw `provider_output` items, including
 opaque encrypted reasoning, for replay on the next turn. Each tool call and
@@ -122,6 +159,12 @@ every model call. Exhausting the turn budget triggers one tool-free wrap-up.
 `on_event(kind, payload)` receives an assistant history message for `assistant`,
 the call dictionary for `tool_start`, and the tool history message for
 `tool_end`. Provider and hook errors propagate to the application.
+
+With `Harness(activity=True)`, observers also receive `model_start`, `model_end`,
+and public `reasoning` events. Tool completion events include `status`, `elapsed`,
+and bounded `details` (file diffs, line counts, or exit codes). Those display
+details are not added to model history; assistant and tool messages are durable
+before display. `reasoning_summary=False` disables the summary request/events.
 
 ## Verify
 

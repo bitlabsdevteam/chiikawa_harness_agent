@@ -1,0 +1,58 @@
+[
+  {
+    "phase": "build",
+    "model": "gpt-6-astra",
+    "at": "2026-10-02T08:55:54.763821+00:00",
+    "results": [
+      {
+        "name": "artisan-coffee",
+        "ok": true,
+        "report": "Built **index.html** for **MARÉ**, an original Goan coffee identity.\n\n- 11 sections, 1,583 visible paragraph words, 4 original SVG illustrations.\n- All requested interactions, plus a downloadable coffee planner.\n- **100 browser checks passed** at 360, 768 and 1280px.\n- Design, twelve-point review, screenshots and test evidence saved in `DESIGN.md`, `REVIEW.md`, `QUALITY.md` and `.verification/`.\n\nOpen `index.html` directly—no dependencies or build required.",
+        "turns": 53,
+        "session_path": "/Users/davidbong/Documents/HarnessEngineeringBootcamp/Chikawa/products/artisan-coffee/.chiikawa/sessions/1790930470.099065000-Build-a-self-contained-index-htm.jsonl"
+      },
+      {
+        "name": "taskman",
+        "ok": true,
+        "report": "Built `taskman.py` with all five subcommands, flexible `--store PATH`, stable IDs, aligned tables, atomic JSON writes, and concurrent-writer locking.\n\nAdded clear validation, corruption preservation, Unicode support, and deliberate permission-error handling. Included runnable examples and storage semantics in `README.md`, plus design and review records.\n\n**Verification:** all **48 subprocess unittest tests passed**, with zero skips.\n\n```sh\npython3 taskman.py --help\npython3 -m unittest -v\n```\n\nSupports macOS/Linux using only Python’s standard library.",
+        "turns": 34,
+        "session_path": "/Users/davidbong/Documents/HarnessEngineeringBootcamp/Chikawa/products/taskman/.chiikawa/sessions/1790930470.099153000-Build-taskman-py-a-Python-stand.jsonl"
+      },
+      {
+        "name": "viper",
+        "ok": true,
+        "report": "Built **Viper** in self-contained `index.html`. Open it directly to play—no setup required.\n\n- Keyboard and touch controls, pause/resume, restart, persistent best score.\n- Reverse-turn protection, double-turn locking, graceful storage and visibility handling.\n- Indigo-and-mango cabinet, 10 sections, 4 original SVGs, and 1,999+ visible prose words.\n- Verified at 360, 768 and 1280px.\n\n**Tests:** 18 engine tests and 21 browser checks passed.\n\nDesign reviews, limitations and screenshots are included in `DESIGN.md`, `REVIEW.md`, `QUALITY.md` and `verification/`.",
+        "turns": 63,
+        "session_path": "/Users/davidbong/Documents/HarnessEngineeringBootcamp/Chikawa/products/viper/.chiikawa/sessions/1790930470.099087000-Build-a-finished-canvas-snake-ga.jsonl"
+      }
+    ]
+  },
+  {
+    "phase": "review",
+    "model": "gpt-6-astra",
+    "at": "2026-10-02T10:26:11.558330+00:00",
+    "results": [
+      {
+        "name": "artisan-coffee",
+        "ok": true,
+        "report": "Reviewed every delivered file and fixed **12 new deficiencies**:\n\n1. Undersized utility text.\n2. Cramped tablet subscription cards.\n3. Navigation clipping in short viewports.\n4. Low-contrast keyboard focus on cobalt.\n5. Inconsistent theme and native-control appearance.\n6. Mismatched accessible labels and duplicate announcements.\n7. Unnumbered instructions in exported recipes.\n8. Unclear recipe selection in the planner.\n9. Destructive clearing without undo.\n10. Broken dark-mode printing.\n11. Fragile, cumbersome verification tooling.\n12. Stale evidence without source fingerprints.\n\n**Verified again:** 132 browser checks passed; 32 files inventoried. The product retains 11 sections, 1,602 visible paragraph words and four original SVGs.\n\nFull findings and evidence are in `REVIEW.md` and `QUALITY.md`. Screenshots, PDF, exported plan and file hashes are saved in `.verification/`.\n\nRun everything with `node tests/run.mjs`.",
+        "turns": 114,
+        "session_path": "/Users/davidbong/Documents/HarnessEngineeringBootcamp/Chikawa/products/artisan-coffee/.chiikawa/sessions/1790930470.099065000-Build-a-self-contained-index-htm.jsonl"
+      },
+      {
+        "name": "taskman",
+        "ok": false,
+        "report": "ConnectionResetError: [Errno 54] Connection reset by peer",
+        "turns": 78,
+        "session_path": "/Users/davidbong/Documents/HarnessEngineeringBootcamp/Chikawa/products/taskman/.chiikawa/sessions/1790930470.099153000-Build-taskman-py-a-Python-stand.jsonl"
+      },
+      {
+        "name": "viper",
+        "ok": false,
+        "report": "ConnectionResetError: [Errno 54] Connection reset by peer",
+        "turns": 83,
+        "session_path": "/Users/davidbong/Documents/HarnessEngineeringBootcamp/Chikawa/products/viper/.chiikawa/sessions/1790930470.099087000-Build-a-finished-canvas-snake-ga.jsonl"
+      }
+    ]
+  }
+]

@@ -18,7 +18,8 @@ class Harness:
 
     def __init__(self, workdir=".", model=None, policy=None, extra_tools=None,
                  system_extra="", on_event=None, budget_tokens=600_000, max_turns=120,
-                 session_path=None, enable_subagents=True, persist=True, _depth=0):
+                 session_path=None, enable_subagents=True, persist=True, _depth=0,
+                 activity=False, reasoning_summary=True):
         """Create a workspace and compose the existing modules without rewriting them."""
         self.workdir = Path(workdir).resolve()
         self.workdir.mkdir(parents=True, exist_ok=True)
@@ -28,6 +29,7 @@ class Harness:
         self.budget_tokens, self.max_turns = budget_tokens, max_turns
         self.session_path = Path(session_path) if session_path is not None else None
         self.persist, self._depth = persist, _depth
+        self.activity, self.reasoning_summary = activity, reasoning_summary
         self.messages, self._recorded = [], 0
         extras = list(extra_tools.values()) if isinstance(extra_tools, dict) else list(extra_tools or [])
         self.tools = {item.name: item for item in core_tools(self.workdir)}
@@ -47,7 +49,8 @@ class Harness:
             return Harness(self.workdir, model=self.model, policy=self.policy, extra_tools=extras,
                            system_extra=system_extra, on_event=self.on_event,
                            budget_tokens=self.budget_tokens, max_turns=self.max_turns,
-                           enable_subagents=enable_subagents, persist=False, _depth=depth)
+                           enable_subagents=enable_subagents, persist=False, _depth=depth,
+                           activity=activity, reasoning_summary=reasoning_summary)
 
         self.tools[remember.name] = remember
         catalog = skills.catalog_prompt(self.workdir)
@@ -104,4 +107,5 @@ class Harness:
             return replacement
 
         return loop.run_loop(self.model, self.system, self.messages, self.tools, on_event,
-                             self.policy.check, max_turns=self.max_turns, before_turn=before_turn)
+                             self.policy.check, max_turns=self.max_turns, before_turn=before_turn,
+                             activity=self.activity, reasoning_summary=self.reasoning_summary)

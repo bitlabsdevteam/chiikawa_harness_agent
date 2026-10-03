@@ -1,5 +1,8 @@
 __pycache__/
 *.pyc
+build/
+dist/
+*.egg-info/
 .DS_Store
 .env
 .env.*
@@ -10,3 +13,24 @@ credential.md
 **/.verification/*.pid
 **/.verification/*.log
 **/.viper-browser-*/
+
+# Python virtual environments and tooling caches
+.venv/
+venv/
+env/
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# JavaScript dependencies used by demos and browser tests
+node_modules/
+
+# Allow safe environment templates
+!.env.example
+!.env.sample

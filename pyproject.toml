@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chiikawa-harness"
+dynamic = ["version"]
+description = "A small, resumable coding-agent CLI for Microsoft Foundry"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Operating System :: POSIX",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+]
+
+[project.scripts]
+chiikawa = "chiikawa.cli:main"
+
+[tool.setuptools]
+packages = ["chiikawa"]
+
+[tool.setuptools.dynamic]
+version = {attr = "chiikawa._version.__version__"}

@@ -1,0 +1,65 @@
+{
+  "sourceHash": "71aa9f1dedfc68134da1450ff1be77eb241602ba666f191722c5db29e8bd3db2",
+  "layouts": [
+    {
+      "width": 360,
+      "scrollWidth": 345,
+      "sections": 11,
+      "paragraphWords": 1602,
+      "svgs": 4,
+      "visibleSVGs": 4,
+      "smallControls": [],
+      "overflow": [],
+      "heroTitle": {
+        "x": 18,
+        "y": 148.1875,
+        "width": 309,
+        "height": 151.171875,
+        "top": 148.1875,
+        "right": 327,
+        "bottom": 299.359375,
+        "left": 18
+      }
+    },
+    {
+      "width": 768,
+      "scrollWidth": 753,
+      "sections": 11,
+      "paragraphWords": 1602,
+      "svgs": 4,
+      "visibleSVGs": 4,
+      "smallControls": [],
+      "overflow": [],
+      "heroTitle": {
+        "x": 24,
+        "y": 156.1875,
+        "width": 349.828125,
+        "height": 176.390625,
+        "top": 156.1875,
+        "right": 373.828125,
+        "bottom": 332.578125,
+        "left": 24
+      }
+    },
+    {
+      "width": 1280,
+      "scrollWidth": 1265,
+      "sections": 11,
+      "paragraphWords": 1602,
+      "svgs": 4,
+      "visibleSVGs": 4,
+      "smallControls": [],
+      "overflow": [],
+      "heroTitle": {
+        "x": 52.5,
+        "y": 265.34375,
+        "width": 577.75,
+        "height": 147.84375,
+        "top": 265.34375,
+        "right": 630.25,
+        "bottom": 413.1875,
+        "left": 52.5
+      }
+    }
+  ]
+}

@@ -1,0 +1,242 @@
+// Browser integration tests. Requires Node 22+ and a running Chrome DevTools endpoint.
+// See QUALITY.md for exact launch commands. Uses only Node's standard libraries.
+import assert from 'node:assert/strict';
+import {mkdir,writeFile,readFile,readdir,unlink} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {connect,navigate,pause,siteURL} from './cdp.mjs';
+import {contrastExpression,focusContrastExpression} from './contrast.mjs';
+import {createHash} from 'node:crypto';
+console.log('[verify] Connecting to isolated Chrome…');
+const c = await connect();
+console.log('[verify] Connected. Checking rendered output…');
+const checks = [];
+const layouts = [];
+const check = (name, condition, evidence = '') => { assert.ok(condition,name + ': ' + JSON.stringify(evidence)); checks.push({name,evidence}); console.log(`✓ ${name}`); };
+const ev = c.evaluate;
+const click = selector => ev(`document.querySelector(${JSON.stringify(selector)}).click()`);
+const text = selector => ev(`document.querySelector(${JSON.stringify(selector)}).innerText`);
+const key = async (key,code=key) => { const windowsVirtualKeyCode = {Enter:13,Tab:9,Escape:27,Home:36,End:35,ArrowLeft:37,ArrowRight:39}[key] || 0; const event = {key,code,windowsVirtualKeyCode}; await c.send('Input.dispatchKeyEvent',{type:'keyDown',...event,...(key==='Enter'?{text:'\r',unmodifiedText:'\r'}:{})}); await c.send('Input.dispatchKeyEvent',{type:'keyUp',...event}); };
+const setWidth = async width => { await c.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false}); await pause(100); };
+const screenshot = async name => { const {data} = await c.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false}); await writeFile(`.verification/${name}.png`,Buffer.from(data,'base64')); };
+const theme = async name => { await ev(`document.documentElement.dataset.theme=${JSON.stringify(name)};updateThemeControl()`); await pause(250); };
+try {
+ await mkdir('.verification/downloads',{recursive:true});
+ await c.send('Network.enable');
+ await navigate(c);
+ await ev(`localStorage.removeItem('mare-theme')`);
+ await c.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+ for (const width of [360,768,1280]) {
+  await setWidth(width); await navigate(c); await theme('light');
+  const audit = await ev(`(() => {
+   const visible=el=>el.checkVisibility()&&!el.closest('svg,script,style,.sr-only,[hidden],noscript');
+   const count=text=>(text.match(/[\\p{L}\\p{N}]+(?:[’'-][\\p{L}\\p{N}]+)*/gu)||[]).length;
+   const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);let node;const copy=[];
+   while(node=walker.nextNode())if(node.textContent.trim()&&visible(node.parentElement))copy.push(node.textContent);
+   const ids=[...document.querySelectorAll('[id]')].map(el=>el.id);
+   const overflows=[...document.querySelectorAll('body *')].filter(el=>visible(el)&&el.getBoundingClientRect().right>innerWidth+1).map(el=>el.tagName+'.'+el.className);
+   const title=document.querySelector('h1');
+   return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,sections:document.querySelectorAll('main>section').length,visibleWords:count(copy.join(' ')),paragraphWords:count([...document.querySelectorAll('p')].filter(visible).map(el=>el.innerText).join(' ')),visibleSVGs:[...document.querySelectorAll('svg')].filter(el=>el.checkVisibility()).length,svgShapes:[...document.querySelectorAll('svg')].map(el=>el.querySelectorAll('path,rect,circle,ellipse,line,polygon').length),duplicateIds:ids.filter((id,i)=>ids.indexOf(id)!==i),brokenLinks:[...document.querySelectorAll('a[href^="#"]')].filter(el=>!document.getElementById(el.hash.slice(1))).map(el=>el.hash),overflows,titleLines:Math.round(title.offsetHeight/parseFloat(getComputedStyle(title).lineHeight)),smallButtons:[...document.querySelectorAll('button')].filter(el=>el.checkVisibility()&&!el.disabled).filter(el=>el.offsetHeight<44||el.offsetWidth<44).map(el=>el.id||el.className)};
+  })()`);
+  layouts.push(audit);
+  check(`${width}: no horizontal overflow`,audit.scrollWidth<=width && audit.overflows.length===0,audit.overflows);
+  check(`${width}: at least nine meaningful sections`,audit.sections>=9,audit.sections);
+  check(`${width}: over 1,400 visible paragraph words`,audit.paragraphWords>1400,audit.paragraphWords);
+  check(`${width}: four visible substantial SVGs`,audit.visibleSVGs===4 && audit.svgShapes.every(n=>n>=15),audit.svgShapes);
+  check(`${width}: unique IDs and valid anchor targets`,!audit.duplicateIds.length&&!audit.brokenLinks.length);
+  check(`${width}: 44px active button targets`,!audit.smallButtons.length,audit.smallButtons);
+  check(`${width}: deliberate hero line count`,audit.titleLines===(width===1280?2:3),audit.titleLines);
+  const contrast = await ev(contrastExpression);
+  check(`${width}: light theme text contrast`,contrast.failures.length===0,contrast);
+  await screenshot(`light-${width}`);
+  await theme('dark');
+  const darkContrast = await ev(contrastExpression);
+  check(`${width}: dark theme text contrast`,darkContrast.failures.length===0,darkContrast);
+  await screenshot(`dark-${width}`);
+  const utility=await ev(`[...document.querySelectorAll('.eyebrow,.hero-note,.hero-art figcaption,.illustration figcaption,.hero-bottom,.card-id,.specs,.price small,.tier-kicker,.tier-quantity,.tier-saving,.recipe-meta small,.planner-label,.sheet-heading,.footer-bottom')].filter(el=>el.checkVisibility()).every(el=>parseFloat(getComputedStyle(el).fontSize)>=12)`);
+  check(`${width}: utility typography at least 12px`,utility);
+  await ev(`document.querySelector('#billing-monthly').focus()`); await key('Tab');
+  const focus=await ev(focusContrastExpression);
+  check(`${width}: focus rings contrast with cobalt and paper`,focus.every(item=>item.ratio>=3&&item.width>=3&&item.style==='solid'),focus);
+  if(width===768)check('Tablet tiers are editorial two-column rows',await ev(`getComputedStyle(document.querySelector('.tier-grid')).gridTemplateColumns.split(' ').length===1&&getComputedStyle(document.querySelector('.tier')).gridTemplateColumns.split(' ').length===2`));
+ }
+ await theme('light');
+ await ev(`document.querySelector('#freshness').scrollIntoView()`);
+ check('Sticky masthead stays at viewport top',await ev(`Math.abs(document.querySelector('.site-header').getBoundingClientRect().top)<1`));
+ check('Anchor clears masthead',await ev(`document.querySelector('#freshness').getBoundingClientRect().top>=document.querySelector('.site-header').offsetHeight`));
+ await setWidth(360); await ev('scrollTo(0,0)');
+ check('Mobile nav starts collapsed',await ev(`getComputedStyle(document.querySelector('#main-nav')).display==='none'`));
+ // A real pointer event opens the menu; subsequent keyboard input uses CDP.
+ const menuRect = await ev(`(()=>{let r=document.querySelector('#menu-toggle').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+ await c.send('Input.dispatchMouseEvent',{type:'mousePressed',button:'left',clickCount:1,...menuRect});
+ await c.send('Input.dispatchMouseEvent',{type:'mouseReleased',button:'left',clickCount:1,...menuRect});
+ check('Mobile menu opens and focuses first link',await ev(`document.querySelector('#menu-toggle').getAttribute('aria-expanded')==='true'&&document.activeElement===document.querySelector('#main-nav a')`));
+ await key('Escape');
+ check('Escape closes nav and restores menu focus',await ev(`document.querySelector('#menu-toggle').getAttribute('aria-expanded')==='false'&&document.activeElement.id==='menu-toggle'`));
+ await click('#menu-toggle'); await click('#main-nav a[href="#coffee"]');
+ check('Mobile destination receives focus and menu closes',await ev(`document.activeElement.id==='coffee'&&document.querySelector('#menu-toggle').getAttribute('aria-expanded')==='false'`));
+ await click('#menu-toggle'); await ev(`document.querySelector('#main-nav a:last-child').focus()`); await key('Tab');
+ check('Tab out of mobile nav closes it',await ev(`document.querySelector('#menu-toggle').getAttribute('aria-expanded')==='false'`));
+ await click('#menu-toggle'); await setWidth(1280);
+ check('Resizing to desktop resets nav expansion',await ev(`document.querySelector('#menu-toggle').getAttribute('aria-expanded')==='false'&&getComputedStyle(document.querySelector('#main-nav')).display==='flex'`));
+ for (const [width,height] of [[360,260],[768,300]]) {
+  await c.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+  await click('#menu-toggle');
+  const short=await ev(`(()=>{const nav=document.querySelector('#main-nav'),link=nav.querySelector('a:last-child');link.scrollIntoView({block:'nearest'});return {bottom:nav.getBoundingClientRect().bottom,linkBottom:link.getBoundingClientRect().bottom,height:innerHeight,scrollable:nav.scrollHeight>nav.clientHeight,overflow:getComputedStyle(nav).overflowY}})()`);
+  check(`${width}×${height}: short-screen menu remains reachable`,short.bottom<=height+1&&short.linkBottom<=height+1&&short.scrollable&&short.overflow==='auto',short);
+  await screenshot(`menu-${width}`); await key('Escape');
+ }
+ await setWidth(320);
+ check('320px reflow has no horizontal overflow',await ev(`document.documentElement.scrollWidth<=innerWidth`));
+ await setWidth(1280);
+ check('Card accessible names begin with the visible action',await ev(`[...document.querySelectorAll('.add-coffee')].every(el=>el.getAttribute('aria-label').startsWith('Add to my bag:'))`));
+ check('Plan updates have one accessible announcement channel',await ev(`document.querySelector('#toast').getAttribute('aria-hidden')==='true'&&!document.querySelector('#toast').hasAttribute('aria-live')&&document.querySelector('#plan-status').getAttribute('aria-atomic')==='true'`));
+ for (const id of ['press','moka','cold','pour']) {
+  await click(`#tab-${id}`);
+  check(`Brew tab ${id}: one selected panel`,await ev(`document.querySelectorAll('.brew-panel:not([hidden])').length===1&&!document.querySelector('#panel-${id}').hidden&&document.querySelector('#tab-${id}').getAttribute('aria-selected')==='true'`));
+ }
+ await ev(`document.querySelector('#tab-pour').focus()`); await key('ArrowLeft');
+ check('Tabs: ArrowLeft wraps to last',await ev(`document.activeElement.id==='tab-cold'&&!document.querySelector('#panel-cold').hidden`));
+ await key('Home'); check('Tabs: Home selects first',await ev(`document.activeElement.id==='tab-pour'`));
+ await key('End'); check('Tabs: End selects last',await ev(`document.activeElement.id==='tab-cold'`));
+ await key('ArrowRight'); check('Tabs: ArrowRight wraps',await ev(`document.activeElement.id==='tab-pour'`));
+ await key('Tab'); check('Tabs: Tab enters active panel',await ev(`document.activeElement.id==='panel-pour'`));
+ for(let i=1;i<=6;i++) {
+  const selector=`.faq-list details:nth-child(${i})`;
+  const before=await ev(`document.querySelector('${selector}').open`);
+  await click(`${selector} summary`);
+  check(`FAQ ${i} toggles natively`,await ev(`document.querySelector('${selector}').open`)!==before);
+ }
+ await ev(`document.querySelector('.faq-list summary').focus()`); const before=await ev(`document.querySelector('.faq-list details').open`); await key('Enter');
+ check('FAQ works with keyboard Enter',await ev(`document.querySelector('.faq-list details').open`)!==before);
+ const monthly=['₹750','₹1,400','₹2,600'], annual=['₹675','₹1,260','₹2,340'], bills=['₹8,100','₹15,120','₹28,080'], savings=['₹900','₹1,680','₹3,120'];
+ for(const period of ['annual','monthly','annual']) {
+  await click(`#billing-${period}`);
+  const values=await ev(`[...document.querySelectorAll('[data-tier]')].map(el=>({price:el.querySelector('[data-price]').textContent,bill:el.querySelector('[data-bill]').textContent,saving:el.querySelector('[data-saving]').textContent,label:el.querySelector('.tier-price small').textContent}))`);
+  values.forEach((v,i)=>{
+   check(`${period} tier ${i+1}: price`,v.price===(period==='annual'?annual[i]:monthly[i]),v);
+   check(`${period} tier ${i+1}: full billing and saving`,period==='annual'?v.bill.includes(bills[i])&&v.saving.includes(savings[i])&&v.label.includes('equiv.'):v.bill.includes(monthly[i])&&v.saving.includes('₹0')&&!v.label.includes('equiv.'),v);
+  });
+ }
+ for(const id of ['coorg','chikmagalur','baba','araku','nilgiri','monsoon']) await click(`[data-coffee="${id}"]`);
+ check('All six add buttons populate correct subtotal',await text('#plan-total')==='₹3,300',await text('#plan-items'));
+ check('Single-bag weight and cup estimate', (await text('#plan-weight')).includes('1500 g')&&(await text('#plan-weight')).includes('93 cups'));
+ await click('[data-adjust="coorg"][data-step="1"]');
+ check('Quantity plus recalculates subtotal',await text('#plan-total')==='₹3,780');
+ check('Quantity focus survives rerender',await ev(`document.activeElement.dataset.adjust==='coorg'&&document.activeElement.dataset.step==='1'`));
+ await click('[data-adjust="coorg"][data-step="-1"]'); await click('[data-adjust="coorg"][data-step="-1"]');
+ check('Quantity zero removes row and keeps visible focus',await ev(`!document.querySelector('[data-adjust="coorg"]')&&document.activeElement.checkVisibility()`));
+ for(const tier of ['drift','daily','house']) {
+  await click(`[data-select-tier="${tier}"]`);
+  check(`Tier ${tier}: selection leads to profile`,await ev(`document.activeElement.id==='sub-origin'&&!document.querySelector('#plan-sub').hidden&&document.querySelector('[data-select-tier="${tier}"]').getAttribute('aria-pressed')==='true'`));
+ }
+ await click('[data-select-tier="daily"]');
+ await ev(`document.querySelector('#sub-origin').value='araku';document.querySelector('#sub-origin').dispatchEvent(new Event('change'))`);
+ await ev(`document.querySelector('#grind').value='French press grind';document.querySelector('#grind').dispatchEvent(new Event('change'))`);
+ check('Origin and grind update subscription and bags', (await text('#plan-sub')).includes('Araku afternoon.')&&(await text('#plan-sub')).includes('French press grind')&&(await text('#plan-items')).includes('French press grind'));
+ await click('#billing-monthly');
+ check('Billing switch updates existing plan to monthly', (await text('#plan-sub')).includes('₹1,400 billed monthly')&&(await text('#plan-sub')).includes('Annual saving: ₹0'));
+ await click('#billing-annual');
+ check('Billing switch updates existing plan to annual', (await text('#plan-sub')).includes('₹15,120 billed annually, upfront')&&(await text('#plan-sub')).includes('₹1,680'));
+ check('Nav distinguishes bags from subscription', (await text('#bag-count')).includes('+ plan')&&await ev(`document.querySelector('.nav-bag').getAttribute('aria-label').includes('plus one subscription plan')`));
+ await setWidth(360); await ev(`document.querySelector('#planner').scrollIntoView()`);
+ check('Populated mobile planner has no overflow',await ev(`document.documentElement.scrollWidth<=innerWidth`));
+ check('Quantity and removal targets are 44px',await ev(`[...document.querySelectorAll('.quantity-controls button,#remove-sub')].every(el=>el.offsetWidth>=44&&el.offsetHeight>=44)`));
+ await screenshot('planner-360');
+ for(const method of ['pour','press','moka','cold']) {
+  await ev(`document.querySelector('#plan-recipe').value='${method}';document.querySelector('#plan-recipe').dispatchEvent(new Event('change'))`);
+  check(`Planner recipe ${method} syncs tab without changing grind`,await ev(`document.querySelector('#tab-${method}').getAttribute('aria-selected')==='true'&&document.querySelector('#grind').value==='French press grind'`));
+ }
+ await click('#tab-press');
+ check('Brew tab updates the explicit planner recipe',await ev(`document.querySelector('#plan-recipe').value==='press'`));
+ await click('#plan-preview summary');
+ check('Inline fallback includes chosen recipe', (await text('#plan-preview-text')).includes('BREW NOTE / FRENCH PRESS')&&(await text('#plan-preview-text')).includes('30 g / 480 g'));
+ const downloadPath=resolve('.verification/downloads');
+ for(const file of await readdir(downloadPath)) if(file.startsWith('mare-coffee-plan')) await unlink(resolve(downloadPath,file));
+ await c.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath,eventsEnabled:true});
+ await click('#save-plan');
+ let saved='';
+ for(let i=0;i<40;i++){await pause(100);try{saved=await readFile(resolve(downloadPath,'mare-coffee-plan.txt'),'utf8');break;}catch{}}
+ check('Save creates an actual UTF-8 plan file',saved.startsWith('MARÉ / MY COFFEE NOTE'),saved.slice(0,250));
+ check('Saved plan has arithmetic, quantity, grind, origin and full annual charge',saved.includes('₹2,820')&&saved.includes('1250 g')&&saved.includes('French press grind')&&saved.includes('Araku afternoon.')&&saved.includes('₹15,120')&&saved.includes('₹1,680'),saved);
+ check('Saved plan includes recipe and no-order disclaimer',saved.includes('BREW NOTE / FRENCH PRESS')&&saved.includes('No stock reservation, payment or recurring charge'));
+ check('Saved recipe has numbered steps and labelled measurements',/Coffee \/ water: 30 g \/ 480 g/.test(saved)&&[1,2,3,4].every(n=>saved.includes(`\n${n}. `)),saved);
+ check('Readable fallback exactly matches saved file',await ev(`document.querySelector('#plan-preview-text').textContent`)===saved);
+ await click('#remove-sub'); check('Remove subscription keeps single bags',await ev(`document.querySelector('#plan-sub').hidden&&document.querySelectorAll('.plan-item').length===5`));
+ await click('#clear-plan');
+ check('Clear empties plan and disables empty actions',await ev(`!document.querySelector('#empty-plan').hidden&&document.querySelector('#save-plan').disabled&&document.querySelector('#clear-plan').disabled&&document.querySelector('#plan-preview').hidden&&document.activeElement.id==='undo-clear'`));
+ await click('#undo-clear');
+ check('Undo clear restores single bags and subtotal',await text('#plan-total')==='₹2,820'&&await ev(`document.querySelectorAll('.plan-item').length===5&&document.querySelector('#undo-clear').hidden`));
+ await click('[data-select-tier="daily"]'); await click('#clear-plan'); await click('#undo-clear');
+ check('Undo restores annual tier, profile and grind', (await text('#plan-sub')).includes('₹15,120')&&(await text('#plan-sub')).includes('Araku afternoon.')&&(await text('#plan-sub')).includes('French press grind'));
+ await click('#clear-plan'); await click('[data-coffee="coorg"]');
+ check('New selection invalidates undo instead of replacing new work',await ev(`document.querySelector('#undo-clear').hidden&&document.querySelectorAll('.plan-item').length===1`));
+ await click('#clear-plan');
+ await ev(`for(let i=0;i<22;i++)document.querySelector('[data-coffee="coorg"]').click()`);
+ check('Quantity guard caps bags at twenty',await ev(`document.querySelector('[data-adjust="coorg"][data-step="1"]').disabled&&document.querySelector('#plan-weight').textContent.includes('5000 g')`));
+ await click('#clear-plan');
+ await theme('light'); await click('#theme-toggle');
+ check('Theme toggle updates persistence and accessible state',await ev(`localStorage.getItem('mare-theme')==='dark'&&document.documentElement.dataset.theme==='dark'&&document.querySelector('#theme-toggle').getAttribute('aria-pressed')==='true'`));
+ await navigate(c); await pause(200);
+ check('Dark mode persists on reload',await ev(`document.documentElement.dataset.theme==='dark'&&document.querySelector('#theme-toggle').getAttribute('aria-label')==='Switch to light mode'`));
+ await click('#theme-toggle'); await navigate(c);
+ check('Light mode persists on reload',await ev(`document.documentElement.dataset.theme==='light'`));
+ await ev(`localStorage.setItem('mare-theme','not-a-theme')`);
+ await c.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'},{name:'prefers-reduced-motion',value:'reduce'}]});
+ await navigate(c);
+ check('Invalid saved theme falls back to system dark',await ev(`document.documentElement.dataset.theme==='dark'&&getComputedStyle(document.documentElement).colorScheme==='dark'`));
+ await c.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'},{name:'prefers-reduced-motion',value:'reduce'}]});
+ await pause(150);
+ check('Unpinned theme follows system changes live',await ev(`document.documentElement.dataset.theme==='light'&&getComputedStyle(document.documentElement).colorScheme==='light'`));
+ await click('#theme-toggle');
+ await c.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'},{name:'prefers-reduced-motion',value:'reduce'}]});
+ await c.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'},{name:'prefers-reduced-motion',value:'reduce'}]});
+ check('Explicit theme choice overrides subsequent system changes',await ev(`document.documentElement.dataset.theme==='dark'`));
+ const otherTab=await connect(); await navigate(otherTab); await otherTab.evaluate(`localStorage.setItem('mare-theme','light')`); await pause(150);
+ check('Theme preference syncs from another real tab',await ev(`document.documentElement.dataset.theme==='light'`));
+ await otherTab.close();
+ const injection=await c.send('Page.addScriptToEvaluateOnNewDocument',{source:`Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Storage blocked','SecurityError')}})`});
+ await navigate(c); await click('#theme-toggle');
+ check('Blocked storage still allows theme and planner',await ev(`document.documentElement.dataset.theme==='dark'&&!document.querySelector('#theme-toggle').disabled`));
+ await click('[data-coffee="coorg"]'); check('Planner survives blocked storage',await text('#plan-total')==='₹480');
+ await c.send('Page.removeScriptToEvaluateOnNewDocument',{identifier:injection.identifier});
+ await c.send('Emulation.setScriptExecutionDisabled',{value:true});
+ await c.send('Page.reload'); await pause(500);
+ const noScript=await ev(`({notice:document.querySelector('.no-script').checkVisibility(),recipes:[...document.querySelectorAll('.brew-panel')].filter(el=>el.checkVisibility()).length,buttons:[...document.querySelectorAll('button')].filter(el=>el.checkVisibility()).length})`);
+ check('No-JavaScript fallback exposes four recipes without dead buttons',noScript.notice&&noScript.recipes===4&&noScript.buttons===0,noScript);
+ await c.send('Emulation.setScriptExecutionDisabled',{value:false});
+ await navigate(c,`file://${resolve('index.html')}`);
+ await click('[data-coffee="coorg"]'); await click('#billing-annual');
+ check('Standalone file URL runs planner and annual toggle',await text('#plan-total')==='₹480'&&(await text('[data-tier="drift"] [data-price]'))==='₹675');
+ await navigate(c); await setWidth(1280); await theme('dark');
+ await click('[data-coffee="coorg"]');
+ const disclosureState=await ev(`[...document.querySelectorAll('.faq-list details')].map(el=>el.open)`);
+ await c.send('Emulation.setEmulatedMedia',{media:'print'});
+ const printStyle=await ev(`({background:getComputedStyle(document.body).backgroundColor,ink:getComputedStyle(document.body).color,scheme:getComputedStyle(document.documentElement).colorScheme,recipes:[...document.querySelectorAll('.brew-panel')].filter(el=>el.checkVisibility()).length,settings:document.querySelector('#print-settings').innerText})`);
+ check('Dark-mode printing uses paper, dark ink and all four recipes',printStyle.background==='rgb(255, 255, 255)'&&printStyle.ink==='rgb(24, 45, 43)'&&printStyle.scheme==='light'&&printStyle.recipes===4&&printStyle.settings.includes('Whole bean'),printStyle);
+ const printContrast=await ev(contrastExpression);
+ check('Print text contrast meets its threshold',printContrast.failures.length===0,printContrast);
+ await ev(`window.dispatchEvent(new Event('beforeprint'))`);
+ check('Print preparation expands all FAQ answers',await ev(`[...document.querySelectorAll('.faq-list details')].every(el=>el.open)`));
+ await ev(`window.dispatchEvent(new Event('afterprint'))`);
+ const pdf=await c.send('Page.printToPDF',{printBackground:false,preferCSSPageSize:true});
+ const pdfBytes=Buffer.from(pdf.data,'base64'); await writeFile('.verification/print.pdf',pdfBytes);
+ check('Browser produces an actual print-ready PDF',pdfBytes.subarray(0,4).toString()==='%PDF'&&pdfBytes.length>10000,{bytes:pdfBytes.length});
+ check('Printing restores disclosure state',JSON.stringify(await ev(`[...document.querySelectorAll('.faq-list details')].map(el=>el.open)`))===JSON.stringify(disclosureState));
+ await c.send('Emulation.setEmulatedMedia',{media:'screen',features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+ await navigate(c); await theme('light'); await ev('scrollTo(0,0)');
+ const {cssContentSize:pageSize}=await c.send('Page.getLayoutMetrics');
+ const full=await c.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:{x:0,y:0,width:1280,height:pageSize.height,scale:1}});
+ await writeFile('.verification/full-1280.png',Buffer.from(full.data,'base64'));
+ check('Full-page evidence captured in the normal test run',pageSize.height>5000,{height:pageSize.height});
+ let rejected=false;
+ try{await c.send('Nonexistent.testCommand');}catch{rejected=true;}
+ check('DevTools errors reject instead of hanging',rejected);
+ const errors=c.events.filter(e=>e.method==='Runtime.exceptionThrown');
+ check('No uncaught JavaScript errors',errors.length===0,errors);
+ const external=c.events.filter(e=>e.method==='Network.requestWillBeSent').map(e=>e.params.request.url).filter(url=>/^https?:/.test(url)&&!url.startsWith(`${siteURL}/`));
+ check('No external network dependencies',external.length===0,external);
+ const sourceHash=createHash('sha256').update(await readFile('index.html')).digest('hex');
+ const browser=await c.send('Browser.getVersion');
+ await writeFile('.verification/results.json',JSON.stringify({sourceHash,browser:browser.product,passed:checks.length,layouts,checks},null,2));
+ console.log(`PASS: ${checks.length} checks. Layouts: ${JSON.stringify(layouts)}. Evidence: .verification/results.json`);
+} finally { await c.send('Emulation.setScriptExecutionDisabled',{value:false}).catch(()=>{}); await c.close(); }

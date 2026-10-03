@@ -1,0 +1,196 @@
+{
+  "browser": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+  "passed": 21,
+  "tests": [
+    "real requestAnimationFrame loop stays ready until Start",
+    "360px layout, visible content, density and controls",
+    "768px layout, visible content, density and controls",
+    "1280px layout, visible content, density and controls",
+    "Measured worst-case overlay heading contrast: 8.01:1",
+    "overlay heading contrast stays above 4.5:1, even over the lightest food pixel",
+    "real animation frames advance on Start, and pause freezes",
+    "Start announces coordinates; a plain step is silent and does not rewrite score",
+    "keyboard arrows/WASD, reverse rejection and double-turn lock",
+    "keyboard controls are scoped to the cabinet, not guide navigation",
+    "pause clears queued turns, disables direction pad and moves focus visibly",
+    "five real foods change pace and persist the best before game over",
+    "short delays move once, long stalls pause without catch-up",
+    "visibility loss and window blur pause; returning does not resume",
+    "canvas resize at DPR 2 preserves a paused round",
+    "touch event steers exactly once; direction button retains keyboard focus",
+    "wall ending and Restart expose explicit actions without automatic play",
+    "best survives reload; malformed storage is safely ignored",
+    "storage read/write failures keep play usable and retain the visit-only best",
+    "reduced motion, explicit focus indicator and accessible names",
+    "no JavaScript exceptions or external page dependencies",
+    "direct self-contained file opens, plays and persists its own best"
+  ],
+  "layouts": [
+    {
+      "width": 360,
+      "scrollWidth": 345,
+      "sections": 10,
+      "svgs": 4,
+      "words": 2332,
+      "buttons": [
+        {
+          "name": "Start game ↗",
+          "width": 140.25,
+          "height": 46
+        },
+        {
+          "name": "Ⅱ Pause",
+          "width": 129,
+          "height": 44
+        },
+        {
+          "name": "↻ Restart",
+          "width": 129,
+          "height": 44
+        },
+        {
+          "name": "Turn up",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn left",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn down",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn right",
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "board": 273,
+      "backing": 546,
+      "headingColor": "rgb(255, 248, 232)",
+      "scoreSize": 11,
+      "footSize": 10,
+      "noteSize": 11,
+      "mascotOverlap": false,
+      "proseWords": 1999
+    },
+    {
+      "width": 768,
+      "scrollWidth": 753,
+      "sections": 10,
+      "svgs": 4,
+      "words": 2352,
+      "buttons": [
+        {
+          "name": "Start game ↗",
+          "width": 140.25,
+          "height": 46
+        },
+        {
+          "name": "Ⅱ Pause",
+          "width": 187,
+          "height": 46
+        },
+        {
+          "name": "↻ Restart",
+          "width": 187,
+          "height": 46
+        },
+        {
+          "name": "Turn up",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn left",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn down",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn right",
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "board": 440,
+      "backing": 880,
+      "headingColor": "rgb(255, 248, 232)",
+      "scoreSize": 11,
+      "footSize": 10,
+      "noteSize": 11,
+      "mascotOverlap": false,
+      "proseWords": 2016
+    },
+    {
+      "width": 1280,
+      "scrollWidth": 1265,
+      "sections": 10,
+      "svgs": 4,
+      "words": 2352,
+      "buttons": [
+        {
+          "name": "Start game ↗",
+          "width": 140.25,
+          "height": 46
+        },
+        {
+          "name": "Ⅱ Pause",
+          "width": 210.609375,
+          "height": 46
+        },
+        {
+          "name": "↻ Restart",
+          "width": 210.609375,
+          "height": 46
+        },
+        {
+          "name": "Turn up",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn left",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn down",
+          "width": 44,
+          "height": 44
+        },
+        {
+          "name": "Turn right",
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "board": 440,
+      "backing": 440,
+      "headingColor": "rgb(255, 248, 232)",
+      "scoreSize": 11,
+      "footSize": 10,
+      "noteSize": 11,
+      "mascotOverlap": false,
+      "proseWords": 2016
+    }
+  ],
+  "exceptions": 0,
+  "externalRequests": [],
+  "screenshots": [
+    "ready-360.png",
+    "ready-768.png",
+    "ready-1280.png",
+    "paused-1280.png",
+    "final-1280.png",
+    "full-page-1280.png"
+  ]
+}
