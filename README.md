@@ -12,7 +12,12 @@ three complete products.
 
 ## Run
 
-No packages need installing. Set the Foundry configuration in your shell, using
+Install a downloadable release or use `pipx install .` / `uv tool install .`
+from this checkout to get the `chiikawa` command. See [installation instructions](INSTALL.md)
+for downloads, configuration, upgrades, and removal. Requires Python 3.10+ on
+macOS, Linux, or WSL. Source checkouts also support `python3 -m chiikawa`.
+
+There are no third-party runtime dependencies. Set the Foundry configuration in your shell, using
 your actual resource endpoint and deployment name. Supply the API key through
 your environment or secret manager; the placeholder below is not a working key.
 
@@ -37,6 +42,34 @@ with status 130 and explains how to resume. A missing `--resume` session is an
 error. The CLI prints bounded visible tool activity and never prints opaque
 provider reasoning. Its “jail directory” constrains file tools; shell commands
 are **not OS-sandboxed**. Use a disposable workspace with appropriate permissions.
+
+Interactive startup displays a compact Chiikawa mascot and wordmark:
+
+```text
+       .--.   .--.
+      /    '-'    \
+     /             \
+    |   o       o   |
+    |  ///  w  ///  |
+     \             /
+      '._       _.'
+      /  '-----'  \
+     (___)   (___)
+
+    C H I I K A W A
+      >_ tiny harness
+```
+
+The cheeks and wordmark are pink on color terminals. Set `NO_COLOR=1` for
+plain text; redirected output and `TERM=dumb` also omit logo colors. Headless
+tasks (`-p`) omit the logo. The artwork is embedded text and needs no network
+access or extra packages at startup.
+
+This unofficial terminal-art adaptation uses the rounded ears, face, and cheeks
+of Chiikawa from the [official anime website](https://www.anime-chiikawa.jp/)
+as a reference ([reference image](https://www.anime-chiikawa.jp/images/icon.png),
+accessed October 3, 2026). Chiikawa is a character created by Nagano; the project
+is not affiliated with the creator or anime production.
 
 For this repository's live testing, explicitly load the ignored configuration
 supplied in `credential.md`:
@@ -357,3 +390,5 @@ See [the Day 5 specification](docs/day5-spec.txt),
 [ordered fleet reports](docs/day5-fleet-runs.json). Product sources and their
 design/review evidence live under `products/`. Local session journals remain
 ignored; reports contain visible completion text and cumulative turn counts.
+
+# chiikawa_harness_agent
