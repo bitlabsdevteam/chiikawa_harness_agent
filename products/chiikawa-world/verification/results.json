@@ -1,0 +1,31 @@
+{
+  "passed": 18,
+  "tests": [
+    "All navigation and illustration references resolve; assets stay local",
+    "320px responsive layout has no horizontal overflow or clipped primary content",
+    "360px responsive layout has no horizontal overflow or clipped primary content",
+    "760px responsive layout has no horizontal overflow or clipped primary content",
+    "768px responsive layout has no horizontal overflow or clipped primary content",
+    "1024px responsive layout has no horizontal overflow or clipped primary content",
+    "1440px responsive layout has no horizontal overflow or clipped primary content",
+    "All three character profiles open; Escape closes and restores focus",
+    "Modal makes background controls inert; Tab and both close buttons work",
+    "Daily joys toggle by keyboard, persist on reload, and can be undone",
+    "Old-day progress resets and malformed storage does not break controls",
+    "Unknown and duplicate saved task IDs are filtered",
+    "Blocked browser storage leaves checklist usable with honest feedback",
+    "Reminder button changes the message without consecutive repeats",
+    "Mobile menu opens, closes after navigation, and supports Escape",
+    "Reduced-motion preference disables smooth scrolling",
+    "Without JavaScript, content and navigation remain available",
+    "No uncaught browser JavaScript errors"
+  ],
+  "viewports": [
+    320,
+    360,
+    760,
+    768,
+    1024,
+    1440
+  ]
+}

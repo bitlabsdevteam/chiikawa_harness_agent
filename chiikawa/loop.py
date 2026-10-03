@@ -20,6 +20,7 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
     The optional before_turn hook also runs before the final wrap-up request.
     The turn budget counts model replies, not individual tool executions.
     Tool calls in a single reply share that turn and execute sequentially.
+    A callable system supplier refreshes runtime facts before each model request.
     """
     backend = backend if backend is not None else provider
     output_limit = backend.MAX_OUTPUT_TOKENS if max_output_tokens is None else max_output_tokens
@@ -36,8 +37,11 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
             options = {"reasoning_summary": True} if activity and reasoning_summary else {}
             if max_output_tokens is not None:
                 options["max_output_tokens"] = max_output_tokens
+            if activity and getattr(backend, "SUPPORTS_STREAMING", False) is True:
+                options["on_delta"] = lambda text: on_event("assistant_delta", {"text": text})
             request_messages = [dict(item) for item in context_messages] + messages if context_messages else messages
-            response = backend.complete(model, system, request_messages, available_tools, **options)
+            current_system = system() if callable(system) else system
+            response = backend.complete(model, current_system, request_messages, available_tools, **options)
             succeeded = True
         finally:
             if activity:
@@ -48,6 +52,8 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
             message["provider_output"] = response["provider_output"]
         if "openrouter_message" in response:
             message["openrouter_message"] = response["openrouter_message"]
+        if "managed_output" in response:
+            message["managed_output"] = response["managed_output"]
         if "reasoning_summary" in response:
             message["reasoning_summary"] = response["reasoning_summary"]
         messages.append(message)
@@ -83,15 +89,13 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
                             "text": str(result)}
             if "call_id" in call:
                 tool_message["call_id"] = call["call_id"]
-            messages.append(tool_message)
             if activity:
                 details = getattr(result, "details", {})
                 status = ("blocked" if reason is not None else "error" if
                           str(result).startswith("ERROR:") or details.get("exit_code", 0) != 0 else "done")
-                on_event("tool_end", {**tool_message, "status": status, "details": details,
-                                      "elapsed": monotonic() - started})
-            else:
-                on_event("tool_end", tool_message)
+                tool_message.update(status=status, details=details, elapsed=monotonic() - started)
+            messages.append(tool_message)
+            on_event("tool_end", tool_message)
 
     # One final tool-free request gives the model a chance to summarize progress.
     messages.append({"role": "user", "text": "Turn limit reached; wrap up now."})

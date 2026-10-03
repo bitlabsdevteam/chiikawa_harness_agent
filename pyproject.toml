@@ -21,6 +21,9 @@ classifiers = [
 [project.scripts]
 chiikawa = "chiikawa.cli:main"
 
+[project.optional-dependencies]
+enterprise = ["cryptography>=43"]
+
 [tool.setuptools]
 packages = ["chiikawa"]
 

@@ -25,16 +25,26 @@ def clip(text, columns):
     return result
 
 
+def enter_cbreak(fd):
+    """Keep Ctrl+C signals but let the editor own extended keys such as BSD Ctrl+T."""
+    import termios
+    import tty
+    tty.setcbreak(fd, termios.TCSANOW)
+    settings = termios.tcgetattr(fd)
+    settings[3] &= ~termios.IEXTEN
+    termios.tcsetattr(fd, termios.TCSANOW, settings)
+
+
 class Prompt:
-    def __init__(self, candidates):
+    def __init__(self, candidates, on_history=None):
         self.candidates = candidates
         self.history = []
+        self.on_history = on_history
 
     def read(self, label='chiikawa> '):
         if not (sys.stdin.isatty() and sys.stdout.isatty()) or os.environ.get('TERM') == 'dumb':
             return input(label)
         import termios
-        import tty
 
         fd = sys.stdin.fileno()
         saved = termios.tcgetattr(fd)
@@ -103,7 +113,7 @@ class Prompt:
 
         try:
             # Preserve typeahead entered between prompts; TCSAFLUSH would discard it.
-            tty.setcbreak(fd, termios.TCSANOW)
+            enter_cbreak(fd)
             write('\033[?2004h')
             while True:
                 options = [] if hidden or pasting else self.candidates(text)
@@ -122,11 +132,14 @@ class Prompt:
                     text = text[:cursor] + chunk + text[cursor:]
                     cursor += len(chunk)
                     continue
+                if char == '\x14' and self.on_history is not None:
+                    self.on_history()
+                    continue
                 if char in ('\r', '\n', '\t'):
-                    if options and (char == '\t' or navigating or text in ('/', '/model', '/provider', '/provider/')
+                    if options and (char == '\t' or navigating or text in ('/', '/model', '/provider', '/provider/', '/permissions')
                                     or not any(text == item[0] for item in options)):
                         text = options[selected][0]
-                        if text in ('/model', '/provider'):
+                        if text in ('/model', '/provider', '/permissions'):
                             text += ' '
                         cursor, selected, navigating = len(text), 0, False
                         if char == '\t' or text.endswith(' '):
@@ -191,4 +204,4 @@ class Prompt:
             try:
                 write('\r\033[J\033[?2004l')
             finally:
-                termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+                termios.tcsetattr(fd, termios.TCSANOW, saved)

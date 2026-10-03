@@ -5,6 +5,7 @@ tools by call ID, and replay opaque reasoning items without displaying them.
 """
 
 import json
+import http.client
 import os
 import time
 import urllib.error
@@ -15,6 +16,7 @@ DEFAULT_MODEL = "gpt-6-astra"
 MAX_OUTPUT_TOKENS = 65_536
 NAME = "foundry"
 MODEL_ENV = "CHIIKAWA_MODEL"
+SUPPORTS_STREAMING = True
 
 
 def api_key():
@@ -75,7 +77,7 @@ def _to_wire(messages):
     return items
 
 
-def complete(model, system, messages, tools, reasoning_summary=False, max_output_tokens=None):
+def complete(model, system, messages, tools, reasoning_summary=False, max_output_tokens=None, on_delta=None):
     """Return visible text, correlated calls, token usage, and replayable output."""
     body = {"model": model, "instructions": system, "input": _to_wire(messages),
             "max_output_tokens": MAX_OUTPUT_TOKENS if max_output_tokens is None else max_output_tokens,
@@ -86,7 +88,16 @@ def complete(model, system, messages, tools, reasoning_summary=False, max_output
     # Astra reasoning does not accept temperature; use its default reasoning effort.
     if tools:
         body["tools"] = [{"type": "function", **t["schema"], "strict": False} for t in tools]
-    response = _post(api_root() + "/responses", body)
+    if on_delta is not None:
+        body["stream"] = True
+        response = _post_stream(api_root() + "/responses", body, on_delta)
+    else:
+        response = _post(api_root() + "/responses", body)
+    return parse_response(response)
+
+
+def parse_response(response):
+    """Only a completed response authorizes replay, accounting, and tool dispatch."""
     if response.get("status") != "completed":
         detail = response.get("error") or response.get("incomplete_details") or {}
         raise RuntimeError(f"Foundry response {response.get('status', 'missing status')}: {detail}")
@@ -116,6 +127,85 @@ def complete(model, system, messages, tools, reasoning_summary=False, max_output
     if summaries:
         result["reasoning_summary"] = "\n\n".join(summaries)
     return result
+
+
+def read_stream(stream, on_delta, max_bytes=67_108_864):
+    """Read bounded UTF-8 SSE frames; expose only public text/refusal deltas.
+
+    The completed response contains authoritative tools, usage, and opaque replay.
+    EOF, [DONE], failure, and incomplete events cannot substitute for completion.
+    """
+    data, event_name, used, frame_bytes = [], None, 0, 0
+    while True:
+        line = stream.readline(16_777_217)
+        used += len(line)
+        frame_bytes += len(line)
+        if used > max_bytes or frame_bytes > 16_777_216:
+            raise RuntimeError("Foundry stream exceeded its size limit.")
+        if not line:
+            raise RuntimeError("Foundry stream ended before response.completed.")
+        line = line.decode("utf-8").rstrip("\r\n")
+        if line:
+            field, separator, value = line.partition(":")
+            value = value[1:] if value.startswith(" ") else value
+            if field == "data" and separator:
+                data.append(value)
+            elif field == "event" and separator:
+                event_name = value
+            continue
+        if not data:
+            event_name, frame_bytes = None, 0
+            continue
+        payload = "\n".join(data)
+        if payload == "[DONE]":
+            raise RuntimeError("Foundry stream ended before response.completed.")
+        event = json.loads(payload)
+        if not isinstance(event, dict) or not isinstance(event.get("type"), str):
+            raise RuntimeError("Invalid Foundry stream event.")
+        kind = event["type"]
+        if event_name is not None and event_name != kind:
+            raise RuntimeError("Mismatched Foundry stream event type.")
+        data, event_name, frame_bytes = [], None, 0
+        if kind in {"response.output_text.delta", "response.refusal.delta"}:
+            delta = event.get("delta")
+            if not isinstance(delta, str):
+                raise RuntimeError("Invalid Foundry text delta.")
+            if delta:
+                on_delta(delta)
+        elif kind == "response.completed":
+            response = event.get("response")
+            if not isinstance(response, dict) or response.get("status") != "completed":
+                raise RuntimeError("Invalid Foundry stream completion.")
+            return response
+        elif kind in {"error", "response.failed", "response.incomplete"}:
+            # Stream errors may contain reflected prompt/credential data.
+            raise RuntimeError(f"Foundry stream reported {kind}.")
+
+
+def _post_stream(url, body, on_delta, retries=5):
+    request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"),
+                                     headers={"Content-Type": "application/json", "Accept": "text/event-stream",
+                                              "api-key": api_key()}, method="POST")
+    for attempt in range(retries + 1):
+        try:
+            response = urllib.request.urlopen(request, timeout=600)
+            break
+        except urllib.error.HTTPError as exc:
+            exc.close()
+            if exc.code not in (429, 500, 502, 503, 504) or attempt == retries:
+                raise RuntimeError(f"Foundry HTTP {exc.code} while opening stream.") from exc
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            if attempt == retries:
+                raise RuntimeError("Foundry could not open response stream.") from exc
+        time.sleep(2**attempt * 2)
+    # Never retry after receiving headers: emitted text and billing cannot be undone.
+    with response:
+        if response.headers.get_content_type() != "text/event-stream":
+            raise RuntimeError("Foundry did not return an SSE response.")
+        try:
+            return read_stream(response, on_delta)
+        except http.client.HTTPException as exc:
+            raise RuntimeError("Foundry response stream was interrupted.") from exc
 
 
 def _post(url, body, retries=5, *, headers=None, label="Foundry"):

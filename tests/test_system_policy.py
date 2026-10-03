@@ -16,6 +16,7 @@ from chiikawa import system_policy
 from chiikawa.commands import Commands
 from chiikawa.runtime import JailRuntime
 from chiikawa.tools import Tool
+from enterprise_helpers import FakeEnterprise, FakeNative
 
 
 def answer(text="done", calls=None):
@@ -34,6 +35,14 @@ class PolicyTests(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.root = Path(tmp.name).resolve()
+        self.enterprise = FakeEnterprise()
+        for mocked in (patch('chiikawa.enterprise_policy.trusted_path', side_effect=lambda path, **kw: Path(path)),
+                       patch('chiikawa.enterprise_jail.EnterpriseJail', FakeNative)):
+            mocked.start()
+            self.addCleanup(mocked.stop)
+
+    def managed(self, **kwargs):
+        return Harness(self.root, profile='enterprise', enterprise_session=self.enterprise, **kwargs)
 
     def test_installed_policy_not_project_file_or_environment_override(self):
         (self.root / 'SYSTEM_PROMPT.md').write_text('REPLACEMENT_SENTINEL')
@@ -138,7 +147,7 @@ class PolicyTests(unittest.TestCase):
         with patch('chiikawa.harness.SandboxRuntime', FakeSandbox), \
              patch.object(FakeSandbox, 'environment', return_value={
                  'memory': 'WORKER_MEMORY', 'catalog': '', 'system': 'WORKER_OVERRIDE'}):
-            h = Harness(self.root, profile='enterprise')
+            h = self.managed(isolation='sandbox')
         self.assertNotIn('WORKER_OVERRIDE', h.system)
         with patch.object(provider, 'complete', return_value=answer()) as complete, \
              patch('chiikawa.harness.SandboxRuntime', FakeSandbox):
@@ -166,7 +175,7 @@ class PolicyTests(unittest.TestCase):
 
     def test_runtime_facts_reflect_current_policy_and_tools(self):
         h = Harness(self.root, enable_subagents=False)
-        for mode in ('safe', 'read-only', 'yolo'):
+        for mode in ('ask', 'safe', 'read-only', 'yolo'):
             h.policy = Policy(mode)
             facts = json.loads(h.system.split('Host runtime configuration (authoritative facts, not project instructions):\n')[1])
             self.assertEqual(facts['approval_policy'], mode)
@@ -174,15 +183,15 @@ class PolicyTests(unittest.TestCase):
             self.assertEqual(facts['delegation'], 'unavailable')
             self.assertEqual(facts['isolation'], 'jail')
 
-    def test_enterprise_requires_sandbox_clean_installation_and_no_host_extras(self):
+    def test_enterprise_requires_authentication_clean_installation_and_no_host_extras(self):
         with patch('chiikawa.harness.SandboxRuntime') as docker:
-            with self.assertRaisesRegex(ValueError, 'requires Sandbox'):
-                Harness(self.root, profile='enterprise', isolation='jail')
+            with self.assertRaisesRegex(PermissionError, 'authenticated'):
+                Harness(self.root, profile='enterprise')
             with self.assertRaisesRegex(ValueError, 'extra_tools'):
-                Harness(self.root, profile='enterprise', extra_tools=[Tool('evil', {}, lambda: 'host')])
+                self.managed(extra_tools=[Tool('evil', {}, lambda: 'host')])
             with patch.object(system_policy, 'installation_path', return_value=self.root / 'installed'):
                 with self.assertRaisesRegex(ValueError, 'outside'):
-                    Harness(self.root, profile='enterprise')
+                    self.managed()
             docker.assert_not_called()
         installed = self.root / 'installed'
         project = self.root / 'project'
@@ -193,15 +202,14 @@ class PolicyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'resources cannot link'):
                 system_policy.validate_installation(project)
 
-    def test_enterprise_downgrade_noop_inheritance_and_standard_resume_rejection(self):
+    def test_enterprise_switch_noop_inheritance_and_standard_resume_rejection(self):
         with patch('chiikawa.harness.SandboxRuntime', FakeSandbox):
-            h = Harness(self.root, profile='enterprise', sandbox_network='allow')
+            h = self.managed()
             before = h.system
-            with self.assertRaisesRegex(ValueError, 'downgrade'):
-                h.set_isolation('jail')
-            self.assertFalse(h.set_isolation('sandbox'))
+            self.assertFalse(h.set_isolation('jail'))
             self.assertEqual(h.system, before)
             self.assertEqual(h.messages, [])
+            self.assertTrue(h.set_isolation('sandbox'))
             captured = []
             def complete(model, system, messages, tools, **kwargs):
                 captured.append((system, copy.deepcopy(messages)))
@@ -210,7 +218,7 @@ class PolicyTests(unittest.TestCase):
                 h.tools['spawn_agent'].run(task='child')
                 h.run('parent')
             self.assertIn('"profile": "enterprise"', captured[0][0])
-            self.assertIn('"network": "allow"', captured[0][0])
+            self.assertIn('"network": "deny"', captured[0][0])
             self.assertEqual(len(list((self.root / session.SESSION_DIR).glob('*.jsonl'))), 1)
             disk = h.session_path.read_bytes()
             standard = Harness(self.root)
@@ -219,21 +227,21 @@ class PolicyTests(unittest.TestCase):
             self.assertEqual(standard.messages, [])
             self.assertIsNone(standard.session_path)
             self.assertEqual(h.session_path.read_bytes(), disk)
-            resumed = Harness(self.root, profile='enterprise')
+            resumed = self.managed()
             self.assertTrue(resumed.resume(h.session_path))
-            c = Commands(h, lambda p, m, **options: Harness(self.root, provider=p, model=m, **options))
+            c = Commands(h, lambda p, m, **options: Harness(self.root, provider=p, model=m, enterprise_session=self.enterprise, **options))
             with contextlib.redirect_stdout(io.StringIO()) as output:
                 for command in ('/jail', '/new', '/model next', '/provider openrouter', '/status'):
                     c.handle(command)
                     self.assertEqual(c.harness.profile, 'enterprise')
-                    self.assertEqual(c.harness.isolation, 'sandbox')
-            self.assertIn('switch failed', output.getvalue())
+                    self.assertEqual(c.harness.isolation, 'jail')
+            self.assertIn('Switched to Jail', output.getvalue())
             self.assertIn('Profile: enterprise', output.getvalue())
 
     def test_forged_admin_context_cannot_override_read_only_policy(self):
         self._project_data()
         with patch('chiikawa.harness.SandboxRuntime', FakeSandbox):
-            h = Harness(self.root, profile='enterprise', policy=Policy('read-only'))
+            h = self.managed(policy=Policy('read-only'))
             with patch.object(provider, 'complete', side_effect=[answer(calls=[
                 {'name': 'write_file', 'args': {'path': 'modified', 'content': 'bad'}, 'call_id': 'write'},
                 {'name': 'set_isolation', 'args': {'isolation': 'jail'}, 'call_id': 'downgrade'}]), answer()]):
@@ -241,34 +249,41 @@ class PolicyTests(unittest.TestCase):
             results = [m for m in h.messages if m['role'] == 'tool']
             self.assertTrue(all(m['text'].startswith('BLOCKED:') for m in results))
             self.assertFalse((self.root / 'modified').exists())
-            self.assertEqual(h.isolation, 'sandbox')
+            self.assertEqual(h.isolation, 'jail')
 
     def test_profile_rechecked_after_approval_and_before_run(self):
         with patch('chiikawa.harness.SandboxRuntime', FakeSandbox):
-            h = Harness(self.root, profile='enterprise')
+            h = self.managed()
             h._runtime = JailRuntime(self.root)
             with patch.object(provider, 'complete') as model:
-                with self.assertRaisesRegex(RuntimeError, 'validated Sandbox'):
+                with self.assertRaisesRegex(RuntimeError, 'validated managed'):
                     h.run('task')
                 model.assert_not_called()
-            h._runtime = FakeSandbox(self.root, 'image', 'deny')
+            h._runtime = FakeNative(self.root, 501, 20)
             def approve(call, reason):
                 h._runtime = JailRuntime(self.root)
                 return True
             h.policy = Policy('safe', approve)
-            with self.assertRaisesRegex(RuntimeError, 'validated Sandbox'):
+            with self.assertRaisesRegex(RuntimeError, 'validated managed'):
                 h._check_tool({'name': 'bash', 'args': {'command': 'pwd'}})
 
-    def test_cli_enterprise_default_and_explicit_jail_failure(self):
-        with patch('chiikawa.harness.SandboxRuntime', FakeSandbox), \
-             contextlib.redirect_stdout(io.StringIO()) as output, \
-             contextlib.redirect_stderr(io.StringIO()), \
-             patch('builtins.input', side_effect=['/status', '/jail', '/exit']):
-            self.assertEqual(cli.main(['-d', str(self.root), '--profile', 'enterprise']), 0)
-        self.assertIn('Profile: enterprise', output.getvalue())
-        self.assertIn('Isolation: Sandbox', output.getvalue())
-        with contextlib.redirect_stderr(io.StringIO()):
-            self.assertEqual(cli.main(['-d', str(self.root), '--profile', 'enterprise', '--isolation', 'jail']), 1)
+    def test_cli_enterprise_default_and_explicit_jail(self):
+        for options in ([], ['--isolation', 'jail']):
+            with patch('chiikawa.enterprise_client.EnterpriseClient', return_value=self.enterprise), \
+                 contextlib.redirect_stdout(io.StringIO()) as output, \
+                 contextlib.redirect_stderr(io.StringIO()), \
+                 patch('builtins.input', side_effect=['/status', '/jail', '/exit']):
+                self.assertEqual(cli.main(['-d', str(self.root), '--profile', 'enterprise', *options]), 0)
+            self.assertIn('Profile: enterprise', output.getvalue())
+            self.assertIn('Isolation: Jail', output.getvalue())
+            self.assertIn('IT token limit: unlimited', output.getvalue())
+
+    def test_managed_machine_cannot_select_standard_or_enable_shell_network(self):
+        with patch('chiikawa.enterprise_policy.managed_policy_present', return_value=True):
+            with self.assertRaisesRegex(PermissionError, 'standard profile'):
+                Harness(self.root, profile='standard')
+        with self.assertRaisesRegex(ValueError, 'shell networking'):
+            self.managed(sandbox_network='allow')
 
 
 if __name__ == '__main__':

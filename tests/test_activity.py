@@ -37,7 +37,7 @@ class ActivityTests(unittest.TestCase):
         stdout, stderr = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr), \
              patch.object(provider, "api_root", return_value="https://example.com/openai/v1"), \
-             patch.object(provider, "_post", side_effect=replies) as post:
+             patch.object(provider, "_post_stream", side_effect=replies) as post:
             status = cli.main(["-d", str(self.root), "-p", "work on greeting", *options])
         return status, stdout.getvalue(), stderr.getvalue(), post
 
@@ -81,7 +81,7 @@ class ActivityTests(unittest.TestCase):
                 response("Saved.")], "--mode", "safe")
         self.assertEqual(status, 0)
         self.assertEqual(stdout, "Saved.\n")
-        self.assertIn("approve write_file? [y/N]", activity)
+        self.assertIn("approve write_file? [y/a/N]", activity)
         self.assertIn("created +1 -0", activity)
         self.assertEqual((self.root / "approved.txt").read_text(), "approved\n")
 

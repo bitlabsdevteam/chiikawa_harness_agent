@@ -11,8 +11,7 @@ import skills
 from tools import core_tools
 
 
-def dispatch(request):
-    root = "/workspace"
+def dispatch(request, root="/workspace"):
     name, args = request["name"], request.get("args", {})
     if name == "environment":
         catalog = skills.catalog_prompt(root)
@@ -26,7 +25,9 @@ def dispatch(request):
 
 if __name__ == "__main__":
     try:
-        result = dispatch(json.load(sys.stdin))
+        # Native enterprise Jail supplies its host workspace as a trusted launch
+        # argument; Docker keeps the /workspace default. Model JSON cannot set it.
+        result = dispatch(json.load(sys.stdin), sys.argv[1] if len(sys.argv) == 2 else "/workspace")
         response = {"result": result, "details": getattr(result, "details", {})}
     except Exception as exc:
         response = {"error": f"{type(exc).__name__}: {exc}"}

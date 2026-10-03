@@ -8,6 +8,9 @@ import sys
 import textwrap
 import threading
 import time
+from contextlib import contextmanager
+
+from .prompt import clip
 
 
 AI_JOKES = (
@@ -42,6 +45,26 @@ def safe_text(value):
                    else f"\\x{ord(character):02x}" for character in str(value))
 
 
+def activity_text(kind, payload):
+    """Describe public activity without inspecting reasoning state or file contents."""
+    if kind == "tool_start":
+        name, args = payload.get("name"), payload.get("args", {})
+        if name in {"read_file", "write_file", "edit_file"}:
+            verb = {"read_file": "Reading", "write_file": "Writing", "edit_file": "Editing"}[name]
+            return f"{verb} {args.get('path', 'file')}"
+        if name == "bash":
+            return f"Running {args.get('command', 'command')}"
+        return {"list_files": "Listing project files", "grep": "Searching project files",
+                "remember": "Updating project memory", "use_skill": "Loading project instructions",
+                "spawn_agent": "Delegating work"}.get(name, "Running tool")
+    if kind == "tool_end":
+        return {"error": "Reviewing tool failure", "blocked": "Reviewing blocked action"}.get(
+            payload.get("status"), "Reviewing tool result")
+    return {"model_start": "Thinking...", "model_end": "Processing model response",
+            "compaction_start": "Compacting context", "compaction": "Continuing with compacted context",
+            "reasoning": "Reviewing response summary", "assistant": "Preparing next action"}.get(kind)
+
+
 class TerminalDisplay:
     """Render synchronous tool events and a TTY-only waiting animation.
 
@@ -62,6 +85,111 @@ class TerminalDisplay:
         self.jokes = []
         self.joke = None
         self.wait_label = "Thinking"
+        self.task_running = False
+        self.activity = "Starting task"
+        self.model_started = None
+        self.stream_text = ""
+        self.stream_plain = False
+
+    def _stream_delta(self, text):
+        with self.lock:
+            self.stream_text = (self.stream_text + text)[-12000:]
+            self.activity = "Receiving response"
+            if not self.tty:
+                if not self.stream_plain:
+                    self.line("Streaming response (preview)", "2")
+                    self.stream_plain = True
+                print(safe_text(text), end="", file=self.stream, flush=True)
+            else:
+                self._paint_working()
+
+    def _finish_stream(self, ok=True):
+        with self.lock:
+            had_text = bool(self.stream_text)
+            if self.stream_plain:
+                print(file=self.stream, flush=True)
+            self.stream_text, self.stream_plain = "", False
+            if had_text and not ok:
+                self.line("Stream interrupted; partial response was not saved.", "2")
+
+    def _working_text(self):
+        elapsed = max(0, time.monotonic() - self.started) if self.started is not None else 0
+        return safe_text(f"Working... {elapsed:.1f}s · {self.activity}").expandtabs(4).replace("\n", " ")
+
+    @staticmethod
+    def thinking_frame():
+        return int(time.monotonic() / 0.12) % 16
+
+    def thinking(self, text, frame=None):
+        """Style an already escaped/clipped status, keeping all three dots in place."""
+        if not self.tty or not self.color or "Thinking..." not in text:
+            return text
+        frame = self.thinking_frame() if frame is None else frame
+        dots = []
+        for index in range(3):
+            # Stagger a smooth brightness wave without moving or adding dots.
+            brightness = round(45 + 170 * (1 + math.cos((frame - index * 3) * math.tau / 16)) / 2)
+            dots.append(f"\033[38;2;0;{brightness};0m.\033[0m")
+        return text.replace("Thinking...", self.style("Thinking", "32") + "".join(dots), 1)
+
+    def _paint_working(self):
+        if not self.task_running:
+            return
+        with self.lock:
+            text = self._working_text()
+            if self.tty:
+                if self.stream_text:
+                    text += " · " + safe_text(self.stream_text[-200:]).expandtabs(4).replace("\n", " ")
+                if self.activity == "Thinking..." and self.joke:
+                    text += "  " + self.joke
+                columns = max(1, shutil.get_terminal_size((88, 24)).columns - 1)
+                text = clip(text, columns)
+                if self.activity == "Thinking...":
+                    text = self.thinking(text)
+                print("\r\033[2K" + text, end="", file=self.stream, flush=True)
+            else:
+                self.line(text, "2")
+
+    def _start_animation(self):
+        if self.tty and self.worker is None:
+            if self.joke is None:
+                self._next_joke()
+            self.stopped.clear()
+            self.worker = threading.Thread(target=self._animate, daemon=True)
+            self.worker.start()
+
+    def _stop_animation(self):
+        self.stopped.set()
+        if self.worker is not None:
+            self.worker.join()
+            self.worker = None
+            with self.lock:
+                print("\r\033[2K", end="", file=self.stream, flush=True)
+
+    @contextmanager
+    def task(self, text):
+        self.started = time.monotonic()
+        self.task_running, self.activity = True, "Starting task"
+        try:
+            self._start_animation()
+            self._paint_working()
+            yield
+        finally:
+            self.close()
+
+    @contextmanager
+    def approval(self):
+        previous = self.activity
+        self._stop_animation()
+        self.activity = "Waiting for approval"
+        self.line(self._working_text(), "2")
+        try:
+            yield
+        finally:
+            self.activity = previous
+            if self.task_running:
+                self._start_animation()
+                self._paint_working()
 
     def _next_joke(self):
         """Shuffle each full deck; avoid repeating at the boundary between decks."""
@@ -100,6 +228,14 @@ class TerminalDisplay:
         index = 0
         next_joke_at = JOKE_INTERVAL
         while not self.stopped.wait(0.12):
+            if self.task_running:
+                elapsed = time.monotonic() - self.started
+                if self.activity == "Thinking..." and elapsed >= next_joke_at:
+                    with self.lock:
+                        self._next_joke()
+                    next_joke_at = elapsed + JOKE_INTERVAL
+                self._paint_working()
+                continue
             with self.lock:
                 elapsed = time.monotonic() - self.started
                 if elapsed >= next_joke_at:
@@ -111,17 +247,16 @@ class TerminalDisplay:
                 width = max(1, shutil.get_terminal_size((88, 24)).columns - 1)
                 if len(text) > width:
                     text = text[:width - 3] + "..." if width >= 3 else text[:width]
+                if self.wait_label == "Thinking":
+                    text = self.thinking(text)
                 print(f"\r\033[2K{text}",
                       end="", file=self.stream, flush=True)
             index += 1
 
     def close(self):
-        self.stopped.set()
-        if self.worker is not None:
-            self.worker.join()
-            self.worker = None
-            with self.lock:
-                print("\r\033[2K", end="", file=self.stream, flush=True)
+        self._stop_animation()
+        self.task_running = False
+        self._finish_stream()
 
     @staticmethod
     def describe(call):
@@ -144,6 +279,19 @@ class TerminalDisplay:
         return f"Use {name}"
 
     def __call__(self, kind, payload):
+        if kind == "assistant_delta":
+            self._stream_delta(payload["text"])
+            return
+        if kind == "model_end":
+            self._finish_stream(payload.get("ok", True))
+        if self.task_running:
+            self.activity = activity_text(kind, payload) or self.activity
+            if kind == "assistant" and not payload.get("tool_calls") and not self.pending:
+                self.close()
+        self._event(kind, payload)
+        self._paint_working()
+
+    def _event(self, kind, payload):
         if kind == "context":
             estimated, threshold = payload["estimated_tokens"], payload["threshold"]
             ratio = f" ({estimated / threshold:.1%})" if threshold else ""
@@ -167,6 +315,9 @@ class TerminalDisplay:
             self.line(f"Compacted context: ~{math.ceil(payload['tokens_before']):,} -> "
                       f"~{math.ceil(payload['tokens_after']):,} tokens", "1;35")
         elif kind == "model_start":
+            if self.task_running:
+                self.model_started = time.monotonic()
+                return
             self.close()
             self.wait_label = "Thinking"
             self.started = time.monotonic()
@@ -178,11 +329,14 @@ class TerminalDisplay:
             else:
                 self.line("Thinking...", "2")
         elif kind == "model_end":
-            self.close()
-            if self.started is not None:
+            if not self.task_running:
+                self.close()
+            started = self.model_started if self.task_running else self.started
+            if started is not None:
                 label = "Model response received" if payload.get("ok", True) else "Model request stopped"
-                self.line(f"{label} ({time.monotonic() - self.started:.1f}s)", "2")
-                self.started = None
+                self.line(f"{label} ({time.monotonic() - started:.1f}s)", "2")
+                if not self.task_running:
+                    self.started = None
         elif kind == "reasoning":
             self.line("Reasoning summary", "1;35")
             self.preview(payload.get("text", ""), max_lines=14, max_chars=2400)

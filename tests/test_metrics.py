@@ -35,7 +35,7 @@ class MetricsTests(unittest.TestCase):
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr), \
              patch.object(provider, "api_root", return_value="https://example.com/openai/v1"), \
              patch.object(provider, "MAX_OUTPUT_TOKENS", 4096), \
-             patch.object(provider, "_post", return_value=api_reply({"input_tokens": 2345, "output_tokens": 123})) as post:
+             patch.object(provider, "_post_stream", return_value=api_reply({"input_tokens": 2345, "output_tokens": 123})) as post:
             status = cli.main(["-d", str(self.root), "-p", "hello", "--context-threshold", "12000"])
         self.assertEqual(status, 0)
         self.assertEqual(stdout.getvalue(), "Done.\n")
@@ -55,7 +55,7 @@ class MetricsTests(unittest.TestCase):
             display = TerminalDisplay(output, io.StringIO())
             harness = Harness(self.root, activity=True, on_event=display, persist=False)
             with patch.object(provider, "api_root", return_value="https://example.com/openai/v1"), \
-                 patch.object(provider, "_post", return_value=api_reply(usage)):
+                 patch.object(provider, "_post_stream", return_value=api_reply(usage)):
                 harness.run("hello")
             self.assertIn(expected, output.getvalue())
 

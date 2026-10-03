@@ -23,20 +23,37 @@ class Harness:
                  system_extra="", on_event=None, budget_tokens=context.DEFAULT_BUDGET_TOKENS, max_turns=120,
                  session_path=None, enable_subagents=True, persist=True, _depth=0,
                  activity=False, reasoning_summary=True, provider=None, max_output_tokens=None,
-                 isolation=None, sandbox_network="deny", sandbox_image=DEFAULT_IMAGE, profile="standard"):
+                 isolation=None, sandbox_network="deny", sandbox_image=DEFAULT_IMAGE, profile=None,
+                 enterprise_session=None):
         """Create a workspace and compose the existing modules without rewriting them."""
         if system_extra:
             raise ValueError("system_extra overrides are not supported; use agents.md or ordinary task context.")
+        from .enterprise_policy import managed_policy_present
+        managed = managed_policy_present()
+        profile = profile or ("enterprise" if managed else "standard")
+        if managed and profile != "enterprise":
+            raise PermissionError("Company IT manages this machine; the standard profile is disabled.")
         if profile not in {"standard", "enterprise"}:
             raise ValueError("profile must be standard or enterprise")
         self._profile = profile
         self._core_policy = system_policy.load_policy()
-        isolation = isolation if isolation is not None else ("sandbox" if profile == "enterprise" else "jail")
-        self.backend = providers.select(provider)
+        isolation = isolation if isolation is not None else "jail"
+        self._enterprise = enterprise_session
+        if profile == "enterprise":
+            if enterprise_session is None:
+                raise PermissionError("Enterprise requires an authenticated IT management session; sign in through the CLI or EnterpriseClient.")
+            enterprise_session.refresh()
+            self.backend = enterprise_session.backend(provider)
+        else:
+            if enterprise_session is not None:
+                raise ValueError("A managed session requires the enterprise profile.")
+            self.backend = providers.select(provider)
         self.provider_name = self.backend.NAME
-        configured_model = os.environ.get(self.backend.MODEL_ENV)
+        configured_model = os.environ.get(self.backend.MODEL_ENV) if profile == "standard" else None
         self._model_explicit = bool(model or configured_model)
         self.model = model or configured_model or self.backend.DEFAULT_MODEL
+        if profile == "enterprise" and self.model not in self.backend.models:
+            raise PermissionError("Model is not approved by company IT.")
         if max_output_tokens is not None and (not isinstance(max_output_tokens, int) or max_output_tokens <= 0):
             raise ValueError("max_output_tokens must be a positive integer.")
         self._max_output_override = max_output_tokens
@@ -54,6 +71,8 @@ class Harness:
         self._extras = list(extra_tools.values()) if isinstance(extra_tools, dict) else list(extra_tools or [])
         self._enable_subagents = enable_subagents
         self.sandbox_network, self.sandbox_image = sandbox_network, sandbox_image
+        if profile == "enterprise" and sandbox_image == DEFAULT_IMAGE:
+            self.sandbox_image = self._enterprise.configuration.get("sandbox_image") or DEFAULT_IMAGE
         if isolation not in {"jail", "sandbox"}:
             raise ValueError("isolation must be jail or sandbox")
         if sandbox_network not in {"deny", "allow"}:
@@ -81,7 +100,7 @@ class Harness:
             "platform": "Linux" if self.isolation == "sandbox" else platform.system(),
             "workspace": "/workspace" if self.isolation == "sandbox" else str(self.workdir),
             "isolation": self.isolation,
-            "network": self._runtime.network if self.isolation == "sandbox" else "host",
+            "network": self._runtime.network if self.isolation == "sandbox" or self.profile == "enterprise" else "host",
             "approval_policy": self.policy.mode,
             "tools": sorted(self.tools),
             "delegation": "synchronous" if "spawn_agent" in self.tools and self._depth < 2 else "unavailable",
@@ -91,11 +110,19 @@ class Harness:
 
     def _validate_profile(self, isolation):
         if self.profile == "enterprise":
-            if isolation != "sandbox":
-                raise ValueError("Enterprise profile requires Sandbox; downgrade to Jail is not permitted.")
             if self._extras:
                 raise ValueError("Enterprise profile does not permit host extra_tools.")
+            if self.sandbox_network != "deny":
+                raise ValueError("Enterprise shell networking stays offline; IT-approved URLs use the managed gateway.")
+            if isolation == "sandbox" and self.sandbox_image != self._enterprise.configuration.get("sandbox_image"):
+                raise PermissionError("IT must approve the pinned local Sandbox image before activation.")
             system_policy.validate_installation(self.workdir)
+            from .enterprise_policy import trusted_path
+            installed = system_policy.installation_path()
+            trusted_path(installed, directory=installed.is_dir())
+            if installed.is_dir():
+                for resource in (*installed.glob("*.py"), installed / "SYSTEM_PROMPT.md"):
+                    trusted_path(resource)
             validate_session(self.workdir, self.session_path)
 
     def _check_tool(self, call):
@@ -106,10 +133,16 @@ class Harness:
         return reason
 
     def _validate_execution(self):
+        if self.profile == "enterprise":
+            self._enterprise.refresh()
         self._validate_profile(self.isolation)
-        if self.profile == "enterprise" and (
-                not isinstance(self._runtime, SandboxRuntime) or self._runtime.root != self.workdir):
-            raise RuntimeError("Enterprise execution requires the validated Sandbox runtime.")
+        if self.profile == "enterprise":
+            from .enterprise_jail import EnterpriseJail
+            expected = SandboxRuntime if self.isolation == "sandbox" else EnterpriseJail
+            if not isinstance(self._runtime, expected) or self._runtime.root != self.workdir:
+                raise RuntimeError("Enterprise execution requires the validated managed runtime.")
+            self.backend.facts = {"isolation": self.isolation, "workspace": str(self.workdir),
+                                  "approval": self.policy.mode, "depth": self._depth}
 
     def isolation_description(self, isolation=None):
         selected = isolation or self.isolation
@@ -117,6 +150,9 @@ class Harness:
             return (f"Sandbox: Linux container; workspace /workspace; network {self.sandbox_network}. "
                     "Each tool runs in a fresh container; /tmp and background processes do not persist. "
                     "Project edits persist. Protected files are hidden; .git is read-only.")
+        if self.profile == "enterprise":
+            return (f"Jail: native OS boundary at {self.workdir}; shell networking offline; "
+                    "IT-approved URLs use the managed gateway. Protected files are restricted.")
         return (f"Jail: file tools restricted to {self.workdir}; shell commands run on the host "
                 "with host permissions and host network access.")
 
@@ -127,6 +163,9 @@ class Harness:
                 raise ValueError("Sandbox v1 does not permit host extra_tools.")
             validate_session(self.workdir, self.session_path)
             runtime = SandboxRuntime(self.workdir, self.sandbox_image, self.sandbox_network)
+        elif self.profile == "enterprise":
+            from .enterprise_jail import EnterpriseJail
+            runtime = EnterpriseJail(self.workdir, os.getuid(), os.getgid())
         else:
             runtime = JailRuntime(self.workdir)
         environment = runtime.environment()
@@ -148,13 +187,18 @@ class Harness:
                            activity=self.activity, reasoning_summary=self.reasoning_summary,
                            provider=self.provider_name, max_output_tokens=self._max_output_override,
                            isolation=self.isolation, sandbox_network=self.sandbox_network,
-                           sandbox_image=self.sandbox_image)
+                           sandbox_image=self.sandbox_image, enterprise_session=self._enterprise)
 
         tools[remember.name] = remember
         if environment["catalog"]:
             tools[use_skill.name] = use_skill
         if self._enable_subagents:
             tools["spawn_agent"] = subagent_tool(make_child, depth=self._depth)
+        if self.profile == "enterprise":
+            @tool("Read an HTTPS URL approved by company IT", url="Approved HTTPS URL")
+            def fetch_url(url):
+                return self._enterprise.request("fetch", {"url": url})
+            tools[fetch_url.name] = fetch_url
         tools.update({item.name: item for item in self._extras})
         return runtime, tools, environment
 
@@ -165,13 +209,15 @@ class Harness:
         if not self._run_lock.acquire(blocking=False):
             raise RuntimeError("Isolation can only change between runs.")
         try:
+            if self.profile == "enterprise":
+                self._enterprise.refresh()
             self._validate_profile(isolation)
             if isolation == self.isolation:
                 return False
             runtime, tools, environment = self._prepare_isolation(isolation)
             notice = {"role": "user", "text": "[Environment changed] " + self.isolation_description(isolation),
                       "isolation": isolation, "environment_change": True, "profile": self.profile}
-            if self.provider_name == "openrouter":
+            if self.provider_name == "openrouter" or self.profile == "enterprise":
                 notice.update(provider=self.provider_name, model=self.model)
             # Journal before committing configuration. Failed preparation never changes history.
             self._flush()
@@ -188,7 +234,7 @@ class Harness:
 
     def _flush(self):
         """Record each newly appended message once; do not mark failed writes as recorded."""
-        if self.isolation == "sandbox":
+        if self.isolation == "sandbox" or self.profile == "enterprise":
             validate_session(self.workdir, self.session_path)
         self._recorded = min(self._recorded, len(self.messages))
         while self._recorded < len(self.messages):
@@ -201,7 +247,7 @@ class Harness:
         selected = Path(path) if path is not None else session.latest(self.workdir)
         if selected is None:
             return False
-        if self.isolation == "sandbox":
+        if self.isolation == "sandbox" or self.profile == "enterprise":
             validate_session(self.workdir, selected)
         loaded = session.load(selected)
         if self.profile != "enterprise" and any(item.get("profile") == "enterprise" for item in loaded):
@@ -214,7 +260,7 @@ class Harness:
             if saved_provider != self.provider_name:
                 raise RuntimeError(f"This session uses {saved_provider}; resume with --provider {saved_provider} "
                                    "or start a new session without --resume.")
-            if saved_provider == "openrouter":
+            if saved_provider == "openrouter" or self.profile == "enterprise":
                 saved_model = next((item["model"] for item in reversed(loaded) if item.get("model")), None)
                 if saved_model:
                     if self._model_explicit and self.model != saved_model:
@@ -252,7 +298,7 @@ class Harness:
         message = {"role": "user", "text": task, "profile": self.profile}
         if self.isolation == "sandbox":
             message["isolation"] = self.isolation
-        if self.provider_name == "openrouter":
+        if self.provider_name == "openrouter" or self.profile == "enterprise":
             message.update(provider=self.provider_name, model=self.model)
         self.messages.append(message)
         self._flush()
@@ -266,6 +312,8 @@ class Harness:
 
         def before_turn(messages):
             """Flush pending input, then move the cursor to the new working-view boundary."""
+            if self.profile == "enterprise":
+                self._validate_execution()
             self._flush()
             options = {"backend": self.backend, "max_output_tokens": self._max_output_override}
             if self.activity:
@@ -285,7 +333,7 @@ class Harness:
             self._recorded = len(replacement)
             return replacement
 
-        return loop.run_loop(self.model, self.system, self.messages, self.tools, on_event,
+        return loop.run_loop(self.model, lambda: self.system, self.messages, self.tools, on_event,
                              self._check_tool, max_turns=self.max_turns, before_turn=before_turn,
                              activity=self.activity, reasoning_summary=self.reasoning_summary,
                              backend=self.backend, max_output_tokens=self._max_output_override,

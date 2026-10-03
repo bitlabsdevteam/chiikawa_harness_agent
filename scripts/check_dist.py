@@ -2,6 +2,8 @@
 """Audit release contents and exercise installed commands outside the checkout."""
 
 import hashlib
+from email.parser import Parser
+import json
 import os
 from pathlib import Path
 import runpy
@@ -36,6 +38,33 @@ def smoke(command, workspace):
     assert "Model: vendor/custom" in result.stdout and "Output limit: 16,384" in result.stdout, result
     assert "\033" not in result.stdout + result.stderr, result
     assert "Profile: standard" in result.stdout and "Core policy SHA-256:" in result.stdout, result
+    result = run("--mode", "ask", input_text="/permissions all\n/new\n/status\n/permissions ask\n/status\n/exit\n")
+    assert result.returncode == 0, result
+    assert "Mode: yolo" in result.stdout and "Mode: ask" in result.stdout, result
+    result = run(input_text="/status\n/exit\n")
+    assert result.returncode == 0 and "Mode: safe" in result.stdout, result
+    # Exercise public transcript replay from the installed artifact, offline.
+    journal = workspace / ".chiikawa" / "sessions" / "transcript-smoke.jsonl"
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    messages = [
+        {"role": "user", "text": "PUBLIC-HISTORY-TASK"},
+        {"role": "assistant", "text": "", "provider_output": [
+            {"type": "reasoning", "encrypted_content": "PRIVATE-REPLAY"},
+            {"type": "function_call", "call_id": "preview", "name": "bash",
+             "arguments": json.dumps({"command": "touch must-not-run"})}],
+         "tool_calls": [{"name": "bash", "call_id": "preview", "args": {"command": "touch must-not-run"}}]},
+        {"role": "tool", "name": "bash", "call_id": "preview", "text": "PUBLIC-TOOL-OUTPUT",
+         "status": "error", "details": {"exit_code": 7}},
+        {"role": "assistant", "text": "PUBLIC-HISTORY-ANSWER", "tool_calls": []},
+    ]
+    journal.write_text("".join(json.dumps(message) + "\n" for message in messages))
+    result = run("--display", "compact", "--resume", input_text="/history\n/status\n/exit\n")
+    assert result.returncode == 0, result
+    transcript = result.stdout + result.stderr
+    assert all(text in transcript for text in ("PUBLIC-HISTORY-TASK", "PUBLIC-HISTORY-ANSWER",
+                                               "PUBLIC-TOOL-OUTPUT", "exit 7")), result
+    assert "PRIVATE-REPLAY" not in transcript and "\033" not in transcript, result
+    assert not (workspace / "must-not-run").exists()
     if os.environ.get("CHIIKAWA_TEST_DOCKER") == "1":
         result = run("-d", str(workspace / "sandbox-smoke"), "--isolation", "sandbox",
                      input_text="/status\n/jail\n/sandbox\n/exit\n")
@@ -69,7 +98,11 @@ def main():
             f"{metadata_dir}/{name}" for name in ("METADATA", "WHEEL", "entry_points.txt", "top_level.txt", "RECORD")
         }, archive.namelist()
         metadata = archive.read(f"{metadata_dir}/METADATA").decode()
-        assert "Requires-Python: >=3.10" in metadata and "Requires-Dist:" not in metadata
+        headers = Parser().parsestr(metadata)
+        assert headers["Requires-Python"] == ">=3.10"
+        # Enterprise extras are opt-in; the standard CLI still installs without
+        # third-party runtime dependencies. Audit metadata, not README text.
+        assert set(headers.get_all("Requires-Dist", [])) <= {'cryptography>=43; extra == "enterprise"'}
         assert "chiikawa = chiikawa.cli:main" in archive.read(f"{metadata_dir}/entry_points.txt").decode()
     with zipfile.ZipFile(dist / "chiikawa.pyz") as archive:
         assert {name for name in archive.namelist() if not name.endswith("/")} == package_files | {"__main__.py", "CHIIKAWA-ARCHIVE"}
@@ -79,7 +112,7 @@ def main():
         allowed.update(f"{directory}/{path.name}" for directory in ("scripts", "tests", "demos")
                        for path in (ROOT / directory).glob("*.py"))
         allowed.update(f"chiikawa_harness.egg-info/{name}" for name in
-                       ("PKG-INFO", "SOURCES.txt", "dependency_links.txt", "entry_points.txt", "top_level.txt"))
+                       ("PKG-INFO", "SOURCES.txt", "dependency_links.txt", "entry_points.txt", "top_level.txt", "requires.txt"))
         for entry in archive.getmembers():
             assert not entry.issym() and not entry.islnk(), entry.name
             if entry.isfile():

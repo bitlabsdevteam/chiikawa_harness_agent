@@ -144,7 +144,7 @@ def core_tools(workdir) -> list[Tool]:
     def bash(command, timeout="120"):
         """Capture bounded output and stop the process group on timeout or interrupt."""
         seconds = float(timeout)
-        with subprocess.Popen(command, shell=True, cwd=root, stdout=subprocess.PIPE,
+        with subprocess.Popen(command, shell=True, cwd=root, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE, text=True, errors="replace",
                               start_new_session=True) as process:
             try:

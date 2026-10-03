@@ -5,6 +5,14 @@ and safe modes restrict tool dispatch; yolo still honors the command denylist.
 """
 
 import re
+from enum import Enum
+from threading import RLock
+
+
+class Approval(Enum):
+    """Explicit callback decision; ordinary truthy values never grant access."""
+
+    ALL = "all"
 
 READ_TOOLS = {"read_file", "list_files", "grep"}
 DENY_PATTERNS = [
@@ -27,29 +35,49 @@ class Policy:
 
     def __init__(self, mode="safe", approver=None):
         """Choose a known mode and an optional (call, reason) approval callback."""
-        if mode not in {"read-only", "safe", "yolo"}:
-            raise ValueError(f"Unknown policy mode: {mode}")
+        self._lock = RLock()
         self.mode = mode
         self.approver = approver if approver is not None else lambda call, reason: False
+
+    @property
+    def mode(self):
+        with self._lock:
+            return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        if value not in {"ask", "read-only", "safe", "yolo"}:
+            raise ValueError(f"Unknown policy mode: {value}")
+        with self._lock:
+            self._mode = value
 
     def check(self, call):
         """Return None to allow or an explanatory reason string to block.
 
         Denials precede mode checks, so even yolo and an approving callback
-        cannot override a dangerous-command match. Only literal True approves.
-        Read tools never invoke the approver. Other safe-mode calls require a
-        fresh callback decision; this policy does not cache earlier approvals.
+        cannot override a dangerous-command match. True permits one call;
+        Approval.ALL selects yolo for this shared Policy's lifetime, until revoked
+        by assigning another mode. No grant is saved to disk. Serialize decisions
+        so concurrent callers sharing a policy never display overlapping prompts.
         """
+        with self._lock:
+            return self._check(call)
+
+    def _check(self, call):
         name = call["name"]
         if name == "bash":
             command = call.get("args", {}).get("command", "")
             if any(re.search(pattern, command) for pattern in DENY_PATTERNS):
                 return "dangerous bash command denied by policy"
-        if name in READ_TOOLS or self.mode == "yolo":
+        if self.mode == "yolo" or (name in READ_TOOLS and self.mode != "ask"):
             return None
         if self.mode == "read-only":
             return "read-only mode permits only read_file, list_files, and grep"
-        reason = f"safe mode requires approval for {name}"
-        if self.approver(call, reason) is True:
+        reason = f"{self.mode} mode requires approval for {name}"
+        decision = self.approver(call, reason)
+        if decision is Approval.ALL:
+            self.mode = "yolo"
+            return None
+        if decision is True:
             return None
         return reason

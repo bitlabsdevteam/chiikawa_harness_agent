@@ -49,6 +49,7 @@ proceed without repeated confirmation.
 | [chiikawa/commands.py](chiikawa/commands.py) | Local slash commands, candidate discovery, and configuration transitions. |
 | [chiikawa/prompt.py](chiikawa/prompt.py) | POSIX line editor, completion, history, bracketed paste, and terminal restoration. |
 | [chiikawa/terminal.py](chiikawa/terminal.py) | Activity display, bounded previews, diffs, progress, and terminal-safe text. |
+| [chiikawa/transcript.py](chiikawa/transcript.py) | Compact activity, public history replay, keyboard ownership, and live footer. |
 | [chiikawa/harness.py](chiikawa/harness.py) | Composition, conversation ownership, durable callbacks, resume, isolation switching, and child configuration. |
 | [chiikawa/loop.py](chiikawa/loop.py) | Sequential model/tool loop, policy hook, events, error results, and final wrap-up. |
 | [chiikawa/providers.py](chiikawa/providers.py) | Provider selection. |
@@ -141,10 +142,16 @@ these distinct entry-point contracts unless the task explicitly changes them.
   fabricated success or diff.
 - Check policy before dispatching each tool. Only `None` from the policy permits
   execution; even an empty reason string blocks. Approval callbacks must return
-  literal `True` to grant approval.
+  literal `True` for one call or the explicit `Approval.ALL` decision below.
 - `read-only` permits only the three read tools. `safe` requires approval for
   other tools. `yolo` still applies the shell denylist. The regex denylist is a
   guardrail, not an OS security boundary.
+- `ask` prompts for every model-requested tool call, including reads. Approval
+  callbacks accept literal `True` for one call or `Approval.ALL` to change the
+  shared policy to `yolo`; other values deny. Grants live only in memory and
+  retain command denials and enterprise restrictions. `/permissions` changes or
+  revokes the policy without replacing the conversation; CLI replacements and
+  children share the active Policy. Do not restore grants from journals.
 - Tool exceptions become correlated model-visible error results. Provider and
   application-hook failures remain visible to callers. Preserve interrupt
   propagation rather than catching `BaseException` as an ordinary tool error.
@@ -186,6 +193,12 @@ these distinct entry-point contracts unless the task explicitly changes them.
   incomplete, or failed model responses before executing their tool calls.
 - Only public reasoning summaries belong in UI output. Preserve opaque provider
   state for replay without displaying or summarizing private reasoning fields.
+- Foundry activity uses SSE text/refusal deltas for provisional stderr previews.
+  Never execute streamed function arguments or persist partial assistant output.
+  Require a validated completed response, then preserve usage/native replay and
+  emit the final answer once. Do not retry after opening a stream. Managed
+  Responses streaming must use the approved transport and reserve quota first.
+  Keep compaction buffered, terminal controls escaped, and cleanup on interruption.
 - Slash commands are local to interactive input. Headless `-p "/status"` remains
   literal model input. Keep discovery, filtering, arrow selection, Tab completion,
   green selection highlighting, and direct command submission consistent.
@@ -196,6 +209,17 @@ these distinct entry-point contracts unless the task explicitly changes them.
 - Escape untrusted terminal controls, bound previews, and keep activity on its
   intended stream. Preserve CLI exit codes: success 0, runtime error 1, argparse
   error 2, and interruption 130.
+- Interactive terminals default to compact activity; headless/plain output uses
+  verbose events. Preserve `--display`, Ctrl+T and `/history`, grouped exploration,
+  public-only replay, prompt drafts, and exclusive keyboard ownership for approvals.
+  Esc interrupts from the working view and returns from the history viewer.
+  Shell tool stdin is closed so subprocesses cannot take over the terminal.
+  Persist activity-enabled tool status/details for replay; never infer successful
+  exit codes from legacy journals without status. Display history survives compaction.
+  Keep Working... and its public action description visible for the entire task
+  in both layouts, including tools and expanded history. Approvals own input and
+  show a static waiting status. Clear activity before the final answer and on
+  failure/interruption; transient status must not enter model or session history.
 
 ## Jail and Sandbox rules
 
@@ -327,6 +351,7 @@ than new automated tests.
 | CLI / fleets / interruption | `tests/test_day5.py`, `tests/test_day5_interrupt.py` |
 | Slash commands / line editor | `tests/test_commands.py` (real pseudo-terminal coverage) |
 | Activity / diffs / terminal output | `tests/test_activity.py` |
+| Compact transcript / replay / keyboard ownership | `tests/test_transcript.py` (including real pseudo-terminals) |
 | OpenRouter / provider routing | `tests/test_openrouter.py` |
 | Core policy / enterprise profile / provider trust separation | `tests/test_system_policy.py` |
 | Isolation transitions / configuration | `tests/test_isolation.py` |

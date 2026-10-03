@@ -1,0 +1,19 @@
+{
+  "provider": "foundry",
+  "model": "gpt-6-astra",
+  "deltas": 121,
+  "first_delta_seconds": 2.179,
+  "last_delta_seconds": 27.324,
+  "completed_seconds": 27.331,
+  "text_matches_completed_response": true,
+  "usage": {
+    "input": 35,
+    "output": 304
+  },
+  "cli": {
+    "preview_seconds": 4.003,
+    "final_answer_seconds": 5.909,
+    "preview_before_final": true,
+    "single_completed_journal_entry": true
+  }
+}

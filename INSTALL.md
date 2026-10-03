@@ -119,7 +119,15 @@ protected paths, container limits, and v1 restrictions. Project edits persist an
 can be destructive; protection by filename is not general secret detection.
 
 Safe mode
-asks before writes, shell commands, or delegation. Ctrl-D exits; Ctrl-C exits
+asks before writes, shell commands, or delegation. Choose `y` to allow one call,
+`a` to allow all subsequent calls until exit (including subagents), or `n`/Enter
+to deny. Use `--mode ask` to ask before every tool call, including reads, or
+`--mode yolo` to approve all at startup. `/permissions ask` revokes an allow-all
+grant; `/permissions safe`, `/permissions all`, and `/permissions read-only`
+select other policies. `/status` shows the active mode. Grants survive new
+conversations within this process but are not saved for future launches.
+Isolation and enterprise restrictions apply in every approval mode.
+Ctrl-D exits; Ctrl-C exits
 with status 130. Use `chiikawa --resume` from the same project to continue its
 latest session. Configuration comes from environment variables; `.env` files
 are not loaded automatically. Installation, `--help`, and `--version` need no credentials.
@@ -151,6 +159,25 @@ set +a
 chiikawa
 ```
 
+Interactive terminals default to compact history: grouped **Explored** entries,
+commands with three-line previews, green **Thinking...** with three fading dots
+during model requests, and a **Working...** timer with the current
+action. It remains visible through every active task event, including tool
+execution, expanded history, and approval waits. Verbose output uses the same
+task-wide status; redirected output prints it as plain text for each event.
+Press **Ctrl+T** or
+enter **/history** to expand public conversation and retained tool output.
+Use arrows, Page Up/Down, or Home/End to scroll; Ctrl+T or Esc returns. Your
+prompt draft is preserved. Esc from the working view interrupts execution;
+`--resume` restores the conversation and shows recent history. Shell commands
+have closed stdin so they cannot capture the CLI's keyboard.
+
+`/status` reports model, approval mode, context, and API token totals reported
+during the current CLI session. Use `--display verbose` to see per-response
+metrics and individual tool events. Headless and noninteractive output defaults
+to verbose; `--display compact` overrides that selection. Plain terminals do
+not animate or read shortcut keys; `/history` prints the public transcript.
+
 The terminal shows public reasoning summaries, progress updates, tools, file
 reads, edit diffs, and command exit codes. The CLI requests medium reasoning
 effort; `--no-reasoning` uses the deployment's default and disables summaries.
@@ -160,7 +187,7 @@ to stderr, leaving completed answers on stdout for redirection. Colors honor
 
 The context meter shows estimated history size and the **600,000-token compaction
 threshold**. Use `chiikawa --context-threshold 100000` to change that threshold.
-Each completed response shows API input/output usage and the output limit
+In verbose mode, each completed response shows API input/output usage and the output limit
 (**65,536 tokens for Foundry; 16,384 for OpenRouter** by default). Override it
 with `--max-output-tokens 8192`; this also applies to compaction and child agents.
 Choose a context threshold and output limit that fit your selected model.
@@ -170,7 +197,12 @@ actual request. Short histories can exceed the threshold until there are enough
 messages to compact. Missing API usage is shown as `not reported`.
 
 For scripts, use `chiikawa -p "your task"`. Headless mode defaults to `yolo`;
-add `--mode safe` or `--mode read-only` when appropriate. Shell commands run
+add `--mode safe`, `--mode ask`, or `--mode read-only` when appropriate.
+Foundry response text streams to stderr as a provisional preview, and the
+completed answer is written once to stdout. The compact, history, and verbose
+views update while generation continues. Tool execution waits for validated
+completion; incomplete streams do not save partial answers or execute calls.
+Shell commands run
 with your user permissions. See `chiikawa --help` for all options.
 
 ## Upgrade and remove
