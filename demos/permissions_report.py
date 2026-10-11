@@ -662,8 +662,7 @@ def scoreboard_html(report, d):
     human = (f"<p class='human'><b>Human burden</b> among the non-read tool calls in this mix: Jev asks a person on <b>{prompts['jev']['rate'] * 100:.0f}%</b> of calls, the LLM judge on <b>{prompts['llm']['rate'] * 100:.0f}%</b>, "
              f"the regex's safe mode on <b>{prompts['regex_safe']['rate'] * 100:.0f}%</b> (the set has no read-only calls). Dangerous calls getting through: {jm['false_allow_deny']['k']} and {lm['false_allow_deny']['k']} of 43 vs 0 in safe mode, "
              f"which assumes a person declines every dangerous call among its {prompts['regex_safe']['k']} prompts.</p>")
-    rule = ("<div class='box'><b>When to use which.</b> Use <b>Jev</b> when each decision blocks the agent and speed matters. Use the <b>LLM judge</b> when its cost per decision is lower at your prices, "
-            "or you already pay for it. 122 synthetic calls, one run: strong indications, not proof.</div>")
+    rule = conclusion_short(report, d)
     return f"<table class='score'><tr>{html_cards}</tr></table>{human}{rule}"
 
 
@@ -727,6 +726,57 @@ def fig_confusion_v2(report):
     svg.text(24, top + 1.5 * cell, "the correct answer", size=11, anchor="middle", rotate=-90)
     svg.text(40, 420, "Counts out of 122 calls (44 allow, 35 ask, 43 deny). Shade shows each cell's share of its row. The red outlined cell is the one to watch.", size=10, fill="#555")
     return svg.render()
+
+
+def conclusion_numbers(report, d):
+    an, cost = report["analysis"], report["analysis"]["cost"]
+    bm, lm, jm = (an["arms"][k]["metrics"] for k in ("regex", "llm", "jev"))
+    pr = d.get("prices")
+    out = {"base": f"{bm['false_allow_deny']['k']}/{bm['false_allow_deny']['n']}",
+           "llm": f"{lm['false_allow_deny']['k']}/43", "jev": f"{jm['false_allow_deny']['k']}/43",
+           "p50j": cost["jev"]["ms_p50"] / 1000, "p50l": cost["llm"]["ms_p50"] / 1000,
+           "w2j": d["within2s"]["jev"]["rate"] * 100, "w2l": d["within2s"]["llm"]["rate"] * 100,
+           "acc_j": jm["accuracy"]["k"], "acc_l": lm["accuracy"]["k"], "n": an["common_n"],
+           "diff": an["paired"]["jev_vs_llm"]["diff"], "h2": report["scorecard"]["head_to_head"]["h2"]["status"], "prices": pr}
+    if pr:
+        money = dollars(report, d)
+        out.update(per_jev=money["jev"], per_llm=money["llm"], ratio=max(money["jev"], money["llm"]) / min(money["jev"], money["llm"]),
+                   cheaper="Jev" if money["jev"] < money["llm"] else "the LLM judge",
+                   floor=breakeven_llm_input_price(report, d, pr["jev"], pr["llm_out"] / pr["llm_in"]))
+    return out
+
+
+def conclusion_short(report, d):
+    c = conclusion_numbers(report, d)
+    cost = (f"at estimated prices Jev costs about <b>{c['ratio']:.1f}x {'less' if c['cheaper'] == 'Jev' else 'more'}</b> per decision "
+            f"(this holds if the LLM's real input price is above about ${c['floor']:.2f}/M)") if c["prices"] else "its cost depends on the LLM's price (see section 3)"
+    return ("<div class='box'><b>Conclusion.</b> On this evidence Jev and the LLM judge <b>decide equally well</b> (dangerous calls that would run: "
+            f"{c['base']} with the regex alone, {c['llm']} with the LLM judge, {c['jev']} with Jev). Jev decides <b>nearly twice as fast</b> "
+            f"({c['p50j']:.2f} s vs {c['p50l']:.2f} s median), and {cost}. Use Jev as a second opinion on tool-call approvals. "
+            "<b>Do not yet use its context-trimming mode:</b> token saving for the main model was not tested here. "
+            f"{c['n']} synthetic calls, one run: strong indications, not proof.</div>")
+
+
+def conclusion_full(report, d):
+    c = conclusion_numbers(report, d)
+    lo, hi = c["diff"]["ci95"]
+    if c["prices"]:
+        pr = c["prices"]
+        cost_line = (f"<li><b>Cost: Jev, at estimated prices.</b> Jev's own price is published (jevmodel.org/pricing, {PRICING_SOURCE.split(', ')[-1]}). The LLM judge's real price was not available, so this uses an "
+                     f"<b>estimate</b> of ${pr['llm_in']:g} input / ${pr['llm_out']:g} output per million tokens: about <b>${c['per_jev']:.2f}</b> (Jev at ${pr['jev']:g}/M) vs <b>${c['per_llm']:.2f}</b> per 1,000 decisions, "
+                     f"{c['ratio']:.1f}x {'cheaper' if c['cheaper'] == 'Jev' else 'dearer'}. The verdict flips only if the LLM's real input price is below about <b>${c['floor']:.2f} per million</b>; "
+                     "replace the estimate with your invoice price to confirm.</li>")
+    else:
+        cost_line = "<li><b>Cost: depends on the LLM's price.</b> Jev's price is published; the LLM judge's was not available, so section 3 gives a break-even rather than a verdict.</li>"
+    return f"""<ul>
+<li><b>Decision quality: a tie.</b> Dangerous calls that would run: {c['base']} (regex alone), {c['llm']} (LLM judge), {c['jev']} (Jev). Overall accuracy {c['acc_j']} vs {c['acc_l']} of {c['n']}.
+The one-call gap is noise, and equivalence is not proven: the 95% interval for the accuracy difference is {lo * 100:+.1f} to {hi * 100:+.1f} points, which crosses the 5-point margin (H2 {c['h2']}).</li>
+<li><b>Speed: Jev.</b> Median decision {c['p50j']:.2f} s vs {c['p50l']:.2f} s; {c['w2j']:.0f}% of Jev decisions finish within 2 s vs {c['w2l']:.0f}%.</li>
+{cost_line}
+<li><b>Not tested, so no claim:</b> (1) <b>token saving for the main model</b> through Jev's context-trimming mode. A separate dummy-data demo (not part of this study's data) hid the one output that held the answer, so that mode is not recommended yet; (2) whether the final task result stays the same; (3) real, non-synthetic sessions.</li>
+<li><b>Recommendation.</b> Use Jev as a second opinion on tool-call approvals when each decision blocks the agent and speed matters. Use the LLM judge when its cost per decision is lower at your prices or you already pay for it. Either is a large safety gain over the regex alone in yolo or headless runs.</li>
+<li><b>What would change this conclusion:</b> the LLM judge's real price; a larger, second-labelled test set; other LLM judges (this tests one model); a fixed context mode evaluated on token use and task success.</li></ul>
+<p><small>122 synthetic calls (43 dangerous), one run, one labeller. Strong indications, not proof.</small></p>"""
 
 
 CSS = """
@@ -795,6 +845,8 @@ Answers that changed on repeats: Jev {stable('jev')}; LLM judge {stable('llm')}.
 <h2 class='pb'>3. Cost: Jev is cheap per decision; the LLM's price decides the rest</h2>
 <p>Over this run Jev billed {cj['in_total']:,} input tokens in {cj['calls']} calls and the LLM judge {cl['in_total']:,} in {cl['calls']} calls. Pre-registered H3 (fewer tokens <i>and</i> less time) is recorded as <b>{report['scorecard']['head_to_head']['h3']['status']}</b>, but its token half is not directly comparable (Jev adds a fixed per-call overhead), so cost is decided by the dollar break-even below. Because the overhead is per call, it would shrink per decision if several decisions were batched into one request (Jev allows up to 8).</p>
 {fig('fig5_tokens', 'width:46%;display:block;margin:0 auto')}{fig('fig5b_jevprice', 'width:58%;display:block;margin:0 auto')}{fig('fig5c_scenarios', 'width:80%;display:block;margin:0 auto')}
+
+<h2 class='pb'>4. Conclusion</h2>{conclusion_full(report, d)}
 
 <h2 class='pb'>Appendix A. Full head-to-head table</h2>{head_to_head_html(report)}
 <div class='keep'><p><b>Break-even as a price ratio</b> (the same maths as section 3, without dollars): how cheap per token Jev must be relative to the LLM's input price.</p>{fig('fig6_breakeven', 'width:62%;display:block;margin:0 auto')}</div>

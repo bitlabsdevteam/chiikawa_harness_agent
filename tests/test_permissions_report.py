@@ -46,6 +46,17 @@ class DollarTests(unittest.TestCase):
         self.assertEqual(llms, sorted(llms))
         self.assertIn("HYPOTHETICAL", report_module.fig_scenarios(self.report, d))
 
+    def test_conclusion_states_tie_speed_cost_and_untested_context(self):
+        for prices, word in ((None, "depends on the LLM"), ({"jev": 0.66, "llm_in": 5.0, "llm_out": 20.0}, "estimate")):
+            d = self.derived(prices)
+            short, full = report_module.conclusion_short(self.report, d), report_module.conclusion_full(self.report, d)
+            self.assertIn("decide equally well", short)
+            self.assertIn("Do not yet use its context-trimming mode", short)
+            self.assertIn("a tie", full)
+            self.assertIn("Not tested", full)
+            self.assertIn("token saving for the main model", full)
+            self.assertIn(word, short + full)
+
     def test_dollars_per_thousand_decisions_follow_the_formula(self):
         prices = {"jev": 3.0, "llm_in": 5.0, "llm_out": 20.0}
         d = self.derived(prices)
