@@ -1,0 +1,39 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='940' height='360' viewBox='0 0 940 360'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='470.0' y='24.0' font-size='15' text-anchor='middle' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Item by item: who was right?</text>
+<rect x='250.0' y='44.0' width='12.0' height='12.0' fill='#009E73' stroke='none' opacity='1.0'/>
+<text x='267.0' y='54.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>only first right</text>
+<rect x='390.0' y='44.0' width='12.0' height='12.0' fill='#B8D8E8' stroke='none' opacity='1.0'/>
+<text x='407.0' y='54.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>both right</text>
+<rect x='488.0' y='44.0' width='12.0' height='12.0' fill='#BBBBBB' stroke='none' opacity='1.0'/>
+<text x='505.0' y='54.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>both wrong</text>
+<rect x='586.0' y='44.0' width='12.0' height='12.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<text x='603.0' y='54.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>only second right</text>
+<text x='240.0' y='95.0' font-size='12' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev vs regex baseline</text>
+<rect x='250.0' y='78.0' width='243.3' height='26.0' fill='#009E73' stroke='none' opacity='1.0'/>
+<text x='371.6' y='95.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>53</text>
+<rect x='493.3' y='78.0' width='270.8' height='26.0' fill='#B8D8E8' stroke='none' opacity='1.0'/>
+<text x='628.7' y='95.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>59</text>
+<rect x='764.1' y='78.0' width='45.9' height='26.0' fill='#BBBBBB' stroke='none' opacity='1.0'/>
+<text x='787.0' y='95.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>10</text>
+<rect x='810.0' y='78.0' width='0.0' height='26.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<text x='250.0' y='122.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>first = Jev, second = regex · McNemar exact p = 2.22e-16</text>
+<text x='240.0' y='175.0' font-size='12' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>LLM judge vs regex baseline</text>
+<rect x='250.0' y='158.0' width='206.6' height='26.0' fill='#009E73' stroke='none' opacity='1.0'/>
+<text x='353.3' y='175.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>45</text>
+<rect x='456.6' y='158.0' width='270.8' height='26.0' fill='#B8D8E8' stroke='none' opacity='1.0'/>
+<text x='592.0' y='175.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>59</text>
+<rect x='727.4' y='158.0' width='82.6' height='26.0' fill='#BBBBBB' stroke='none' opacity='1.0'/>
+<text x='768.7' y='175.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>18</text>
+<rect x='810.0' y='158.0' width='0.0' height='26.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<text x='250.0' y='202.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>first = LLM judge, second = regex · McNemar exact p = 5.68e-14</text>
+<text x='240.0' y='255.0' font-size='12' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev vs LLM judge</text>
+<rect x='250.0' y='238.0' width='36.7' height='26.0' fill='#009E73' stroke='none' opacity='1.0'/>
+<text x='268.4' y='255.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>8</text>
+<rect x='286.7' y='238.0' width='477.4' height='26.0' fill='#B8D8E8' stroke='none' opacity='1.0'/>
+<text x='525.4' y='255.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>104</text>
+<rect x='764.1' y='238.0' width='45.9' height='26.0' fill='#BBBBBB' stroke='none' opacity='1.0'/>
+<text x='787.0' y='255.0' font-size='11' text-anchor='middle' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>10</text>
+<rect x='810.0' y='238.0' width='0.0' height='26.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<text x='250.0' y='282.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>first = Jev, second = LLM judge · McNemar exact p = 0.00781</text>
+</svg>

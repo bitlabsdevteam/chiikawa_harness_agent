@@ -61,6 +61,7 @@ def activity_text(kind, payload):
         return {"error": "Reviewing tool failure", "blocked": "Reviewing blocked action"}.get(
             payload.get("status"), "Reviewing tool result")
     return {"model_start": "Thinking...", "model_end": "Processing model response",
+            "jev_start": "Calling Jev model", "jev_end": "Reviewing Jev answer",
             "compaction_start": "Compacting context", "compaction": "Continuing with compacted context",
             "reasoning": "Reviewing response summary", "assistant": "Preparing next action"}.get(kind)
 
@@ -276,6 +277,8 @@ class TerminalDisplay:
             return "Update CHIIKAWA.md memory"
         if name == "spawn_agent":
             return "Delegate to sub-agent"
+        if name == "jev":
+            return f"Call Jev model [{args.get('host', 'jevmodel.org')}] · {args.get('detail', '')}"
         return f"Use {name}"
 
     def __call__(self, kind, payload):
@@ -346,6 +349,20 @@ class TerminalDisplay:
                 self.preview(payload["text"], max_lines=8)
             else:
                 print(safe_text(payload["text"]), file=self.answer_stream, flush=True)
+        elif kind == "jev_start":
+            self.line(f"> Calling Jev model ({payload['model']}) at {payload['host']} · {payload['detail']} "
+                      f"[jev]", "1;35")
+            self.line(f"    sending {payload['chars']:,} chars, {payload['questions']} question"
+                      f"{'s' if payload['questions'] != 1 else ''} (secret-like values masked)", "2")
+            self.preview(payload.get("sent", ""), max_lines=3, max_chars=300)
+        elif kind == "jev_end":
+            elapsed = f"({payload['elapsed']:.1f}s)"
+            if payload["ok"]:
+                tokens = payload.get("input_tokens")
+                used = f" · {tokens:,} input tokens" if isinstance(tokens, int) else ""
+                self.line(f"  Done: Jev answered · {payload['summary']}{used} {elapsed}", "35")
+            else:
+                self.line(f"  Failed: Jev call · {payload['error']} · fell back to built-in behavior {elapsed}", "31")
         elif kind == "tool_start":
             key = payload.get("call_id", payload.get("name"))
             self.pending[key] = payload

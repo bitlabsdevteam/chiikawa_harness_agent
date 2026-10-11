@@ -1,0 +1,39 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='900' height='350' viewBox='0 0 900 350'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='450.0' y='24.0' font-size='15' text-anchor='middle' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Context: tokens before, after, and Jev's own cost</text>
+<rect x='270.0' y='37.0' width='12.0' height='12.0' fill='#9AA0A6' stroke='none' opacity='1.0'/>
+<text x='287.0' y='47.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Before (full history)</text>
+<rect x='428.4' y='37.0' width='12.0' height='12.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='445.4' y='47.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>After Jev view</text>
+<rect x='542.0' y='37.0' width='12.0' height='12.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='559.0' y='47.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev input tokens</text>
+<text x='262.0' y='94.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>oracle on excerpt (upper bound) (stand-in)</text>
+<rect x='270.0' y='70.0' width='560.0' height='12.0' fill='#9AA0A6' stroke='none' opacity='1.0'/>
+<text x='835.0' y='80.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>185,322</text>
+<rect x='270.0' y='84.0' width='160.8' height='12.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='435.8' y='94.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>53,224</text>
+<rect x='270.0' y='98.0' width='282.6' height='12.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='557.6' y='108.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>93,530</text>
+<text x='262.0' y='154.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>hides needed (wrong on purpose) (stand-in)</text>
+<rect x='270.0' y='130.0' width='560.0' height='12.0' fill='#9AA0A6' stroke='none' opacity='1.0'/>
+<text x='835.0' y='140.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>185,322</text>
+<rect x='270.0' y='144.0' width='15.5' height='12.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='290.5' y='154.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>5,136</text>
+<rect x='270.0' y='158.0' width='282.6' height='12.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='557.6' y='168.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>93,530</text>
+<text x='262.0' y='214.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>lexical stand-in (stand-in)</text>
+<rect x='270.0' y='190.0' width='560.0' height='12.0' fill='#9AA0A6' stroke='none' opacity='1.0'/>
+<text x='835.0' y='200.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>185,322</text>
+<rect x='270.0' y='204.0' width='73.6' height='12.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='348.6' y='214.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>24,344</text>
+<rect x='270.0' y='218.0' width='282.6' height='12.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='557.6' y='228.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>93,530</text>
+<text x='262.0' y='274.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>short for all (head/tail only) (stand-in)</text>
+<rect x='270.0' y='250.0' width='560.0' height='12.0' fill='#9AA0A6' stroke='none' opacity='1.0'/>
+<text x='835.0' y='260.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>185,322</text>
+<rect x='270.0' y='264.0' width='105.0' height='12.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='380.0' y='274.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>34,737</text>
+<rect x='270.0' y='278.0' width='282.6' height='12.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='557.6' y='288.0' font-size='10' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>93,530</text>
+<text x='270.0' y='338.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Net saving = before - after - Jev tokens, valid only when the recall gate passes.</text>
+</svg>

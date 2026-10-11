@@ -1,0 +1,11 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='940' height='190' viewBox='0 0 940 190'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='470.0' y='24.0' font-size='15' text-anchor='middle' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Waiting time added per 100 approvals</text>
+<text x='180.0' y='73.0' font-size='12' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>LLM judge</text>
+<rect x='190.0' y='56.0' width='400.0' height='26.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='598.0' y='74.0' font-size='12' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>4.6 min  (mean 2.74 s per decision)</text>
+<text x='180.0' y='117.0' font-size='12' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev</text>
+<rect x='190.0' y='100.0' width='210.5' height='26.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='408.5' y='118.0' font-size='12' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>2.4 min  (mean 1.44 s per decision)</text>
+<text x='40.0' y='182.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Total = 100 x mean decision time, if each call blocks the agent until it is decided.</text>
+</svg>

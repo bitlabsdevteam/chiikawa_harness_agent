@@ -1,0 +1,36 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='940' height='400' viewBox='0 0 940 400'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='470.0' y='24.0' font-size='15' text-anchor='middle' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Cost in dollars: how expensive must the LLM be for Jev to be cheaper?</text>
+<text x='190.0' y='56.0' font-size='11' text-anchor='start' fill='#444' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>LLM input price (USD per million tokens) above which Jev is cheaper. Bar = LLM output priced 4x input; whisker = 8x to 1x.</text>
+<text x='180.0' y='91.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Starter pack  ($0.66/M)</text>
+<rect x='190.0' y='74.0' width='360.8' height='24.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='446.2' y1='86.0' x2='710.0' y2='86.0' stroke='#222222' stroke-width='2'/>
+<text x='718.0' y='91.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>$0.78/M   (Jev costs $0.27 per 1,000 decisions)</text>
+<text x='180.0' y='129.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>75M pack  ($0.52/M)</text>
+<rect x='190.0' y='112.0' width='284.2' height='24.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='391.8' y1='124.0' x2='599.7' y2='124.0' stroke='#222222' stroke-width='2'/>
+<text x='607.7' y='129.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>$0.62/M   (Jev costs $0.21 per 1,000 decisions)</text>
+<text x='180.0' y='167.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>200M pack  ($0.38/M)</text>
+<rect x='190.0' y='150.0' width='207.7' height='24.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='337.5' y1='162.0' x2='489.4' y2='162.0' stroke='#222222' stroke-width='2'/>
+<text x='497.4' y='167.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>$0.45/M   (Jev costs $0.16 per 1,000 decisions)</text>
+<text x='180.0' y='205.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>600M pack  ($0.28/M)</text>
+<rect x='190.0' y='188.0' width='153.1' height='24.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='298.7' y1='200.0' x2='410.6' y2='200.0' stroke='#222222' stroke-width='2'/>
+<text x='418.6' y='205.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>$0.33/M   (Jev costs $0.12 per 1,000 decisions)</text>
+<text x='180.0' y='243.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Creator  ($0.24/M)</text>
+<rect x='190.0' y='226.0' width='131.2' height='24.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='283.2' y1='238.0' x2='379.1' y2='238.0' stroke='#222222' stroke-width='2'/>
+<text x='387.1' y='243.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>$0.29/M   (Jev costs $0.10 per 1,000 decisions)</text>
+<text x='180.0' y='281.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Studio  ($0.15/M)</text>
+<rect x='190.0' y='264.0' width='82.0' height='24.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='248.2' y1='276.0' x2='308.2' y2='276.0' stroke='#222222' stroke-width='2'/>
+<text x='316.2' y='281.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>$0.18/M   (Jev costs $0.06 per 1,000 decisions)</text>
+<text x='180.0' y='319.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Max  ($0.12/M)</text>
+<rect x='190.0' y='302.0' width='65.6' height='24.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='236.6' y1='314.0' x2='284.5' y2='314.0' stroke='#222222' stroke-width='2'/>
+<text x='292.5' y='319.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>$0.14/M   (Jev costs $0.05 per 1,000 decisions)</text>
+<text x='40.0' y='352.0' font-size='11' text-anchor='start' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Reading: at the Starter pack price, Jev costs less than the LLM judge for any LLM input price above about $0.78 per million (output at 4x).</text>
+<text x='40.0' y='370.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev prices: jevmodel.org/pricing, page dated 24 Sep 2026; output tokens free. Uses the 413 billed Jev tokens per decision measured here, overhead included.</text>
+<text x='40.0' y='386.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>The LLM judge's real price was not available: the headline verdict uses an ESTIMATE ($5 in / $20 out per M). Replace it with your invoice price.</text>
+</svg>

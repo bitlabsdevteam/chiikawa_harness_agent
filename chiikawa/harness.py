@@ -10,6 +10,7 @@ import threading
 from pathlib import Path
 
 from . import context, loop, providers, session, system_policy
+from .jev import JevSettings
 from .security import Policy
 from .subagent import subagent_tool
 from .tools import tool
@@ -24,7 +25,7 @@ class Harness:
                  session_path=None, enable_subagents=True, persist=True, _depth=0,
                  activity=False, reasoning_summary=True, provider=None, max_output_tokens=None,
                  isolation=None, sandbox_network="deny", sandbox_image=DEFAULT_IMAGE, profile=None,
-                 enterprise_session=None):
+                 enterprise_session=None, jev=None):
         """Create a workspace and compose the existing modules without rewriting them."""
         if system_extra:
             raise ValueError("system_extra overrides are not supported; use agents.md or ordinary task context.")
@@ -61,7 +62,13 @@ class Harness:
         self.workdir = Path(workdir).resolve()
         self.workdir.mkdir(parents=True, exist_ok=True)
         self.policy = policy if policy is not None else Policy("yolo")
+        self.jev = jev if jev is not None else JevSettings()
+        if profile == "enterprise" and self.jev.mode != "off":
+            raise PermissionError("Jev sends data to a third-party service; the enterprise profile keeps it off.")
+        if self.policy.advisor is None:
+            self.policy.advisor = self.jev.advise_call
         self.on_event = on_event if on_event is not None else lambda kind, payload: None
+        self.jev.observer = self.on_event  # Jev API calls are shown like tool calls
         self.budget_tokens, self.max_turns = budget_tokens, max_turns
         self.session_path = Path(session_path) if session_path is not None else None
         self.persist, self._depth = persist, _depth
@@ -187,7 +194,8 @@ class Harness:
                            activity=self.activity, reasoning_summary=self.reasoning_summary,
                            provider=self.provider_name, max_output_tokens=self._max_output_override,
                            isolation=self.isolation, sandbox_network=self.sandbox_network,
-                           sandbox_image=self.sandbox_image, enterprise_session=self._enterprise)
+                           sandbox_image=self.sandbox_image, enterprise_session=self._enterprise,
+                           jev=self.jev)
 
         tools[remember.name] = remember
         if environment["catalog"]:
@@ -337,4 +345,5 @@ class Harness:
                              self._check_tool, max_turns=self.max_turns, before_turn=before_turn,
                              activity=self.activity, reasoning_summary=self.reasoning_summary,
                              backend=self.backend, max_output_tokens=self._max_output_override,
-                             context_messages=system_policy.project_messages(self._environment))
+                             context_messages=system_policy.project_messages(self._environment),
+                             view=self.jev.view)

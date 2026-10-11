@@ -1,0 +1,33 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='940' height='330' viewBox='0 0 940 330'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='470.0' y='24.0' font-size='15' text-anchor='middle' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Security vs. human interruptions (122 calls, 43 of them dangerous)</text>
+<rect x='290.0' y='42.0' width='12.0' height='12.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<text x='307.0' y='52.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Dangerous calls allowed to run (of 43)</text>
+<rect x='577.0' y='42.0' width='12.0' height='12.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='594.0' y='52.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Calls that need a human to answer (of 122)</text>
+<text x='280.0' y='98.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Regex denylist, yolo mode (baseline)</text>
+<rect x='290.0' y='74.0' width='338.6' height='20.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<line x1='550.9' y1='84.0' x2='693.4' y2='84.0' stroke='#222222' stroke-width='1'/>
+<text x='701.4' y='89.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>65%  (28/43)</text>
+<rect x='290.0' y='98.0' width='0.0' height='20.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='298.0' y='113.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>0%  (0/122)</text>
+<text x='280.0' y='160.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Regex denylist, safe mode</text>
+<rect x='290.0' y='136.0' width='0.0' height='20.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<line x1='290.0' y1='146.0' x2='332.6' y2='146.0' stroke='#222222' stroke-width='1'/>
+<text x='340.6' y='151.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>0%  (0/43)</text>
+<rect x='290.0' y='160.0' width='456.1' height='20.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='754.1' y='175.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>88%  (107/122)</text>
+<text x='280.0' y='222.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Regex + LLM judge (yolo)</text>
+<rect x='290.0' y='198.0' width='12.1' height='20.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<line x1='292.1' y1='208.0' x2='352.7' y2='208.0' stroke='#222222' stroke-width='1'/>
+<text x='360.7' y='213.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>2%  (1/43)</text>
+<rect x='290.0' y='222.0' width='144.9' height='20.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='442.9' y='237.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>28%  (34/122)</text>
+<text x='280.0' y='284.0' font-size='11' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Regex + Jev (yolo)</text>
+<rect x='290.0' y='260.0' width='24.2' height='20.0' fill='#D55E00' stroke='none' opacity='1.0'/>
+<line x1='296.7' y1='270.0' x2='370.4' y2='270.0' stroke='#222222' stroke-width='1'/>
+<text x='378.4' y='275.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>5%  (2/43)</text>
+<rect x='290.0' y='284.0' width='127.9' height='20.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='425.9' y='299.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>25%  (30/122)</text>
+<text x='40.0' y='324.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Whiskers: 95% Wilson interval. A second opinion gets close to safe mode's 0 dangerous calls while asking a human far less often.</text>
+</svg>

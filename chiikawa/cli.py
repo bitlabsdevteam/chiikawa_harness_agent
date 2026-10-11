@@ -14,7 +14,7 @@ from .security import Approval, Policy
 from ._version import __version__
 from .terminal import TerminalDisplay, safe_text
 from .transcript import TranscriptDisplay
-from . import context, providers, session
+from . import context, envfile, jev, providers, session
 from .commands import Commands
 from .prompt import Prompt
 from .runtime import DEFAULT_IMAGE, setup_image
@@ -118,6 +118,11 @@ def main(argv=None):
     parser.add_argument("--context-threshold", "--budget-tokens", type=int,
                         default=context.DEFAULT_BUDGET_TOKENS, metavar="TOKENS",
                         help="Compact above this estimated history size (default: 600000 tokens)")
+    parser.add_argument("--env-file", metavar="PATH",
+                        help="Load provider settings (AZURE_OPENAI_*, CHIIKAWA_*, OPENROUTER_*, JEVMODEL_*) from a dotenv file; "
+                             "real environment variables win. Never loaded automatically.")
+    parser.add_argument("--jev", choices=jev.MODES, default="off",
+                        help="Use the Jev decision model: permissions, context, or both (needs JEVMODEL_API_KEY)")
     parser.add_argument("--no-reasoning", action="store_true",
                         help="Disable public reasoning summaries (for models that do not support them)")
     args = parser.parse_args(argv)
@@ -126,6 +131,13 @@ def main(argv=None):
     if managed and args.profile == "standard":
         parser.error("Company IT manages this machine; --profile standard is disabled.")
     args.profile = args.profile or ("enterprise" if managed else "standard")
+    if args.env_file is not None:
+        if args.profile == "enterprise":
+            parser.error("--env-file is unavailable in the enterprise profile.")
+        try:
+            envfile.load(args.env_file)
+        except OSError as exc:
+            parser.error(f"cannot read --env-file: {exc.strerror or type(exc).__name__}")
     if args.max_turns < 0:
         parser.error("--max-turns must be nonnegative")
     if args.context_threshold < 0:
@@ -158,6 +170,14 @@ def main(argv=None):
                 return approve(call, reason, stream=sys.stderr)
 
         policy = Policy(mode, approver)
+        jev_settings = jev.JevSettings()
+        if args.jev != "off":
+            if args.profile == "enterprise":
+                parser.error("--jev is unavailable in the enterprise profile.")
+            try:
+                jev_settings.set_mode(args.jev)
+            except RuntimeError as exc:
+                parser.error(str(exc))
 
         def make_harness(provider_name, model, **isolation_options):
             options = dict(profile=args.profile, isolation=args.isolation, sandbox_network=args.sandbox_network, sandbox_image=args.sandbox_image)
@@ -169,7 +189,7 @@ def main(argv=None):
                            budget_tokens=args.context_threshold,
                            reasoning_summary=not args.no_reasoning,
                            provider=provider_name, max_output_tokens=args.max_output_tokens,
-                           **options)
+                           jev=jev_settings, **options)
 
         harness = make_harness(backend.NAME, args.model)
         if args.resume and not harness.resume():

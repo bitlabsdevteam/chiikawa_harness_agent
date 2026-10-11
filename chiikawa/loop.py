@@ -10,7 +10,7 @@ from time import monotonic
 
 def run_loop(model, system, messages, tools, on_event, before_tool,
              max_turns=80, before_turn=None, activity=False, reasoning_summary=True,
-             backend=None, max_output_tokens=None, context_messages=None):
+             backend=None, max_output_tokens=None, context_messages=None, view=None):
     """Run tools in order until the model answers or the turn budget expires.
 
     Mutate the caller's history in place, including after optional compaction.
@@ -21,6 +21,7 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
     The turn budget counts model replies, not individual tool executions.
     Tool calls in a single reply share that turn and execute sequentially.
     A callable system supplier refreshes runtime facts before each model request.
+    The optional view hook maps the outgoing request list to a projection of it.
     """
     backend = backend if backend is not None else provider
     output_limit = backend.MAX_OUTPUT_TOKENS if max_output_tokens is None else max_output_tokens
@@ -40,6 +41,9 @@ def run_loop(model, system, messages, tools, on_event, before_tool,
             if activity and getattr(backend, "SUPPORTS_STREAMING", False) is True:
                 options["on_delta"] = lambda text: on_event("assistant_delta", {"text": text})
             request_messages = [dict(item) for item in context_messages] + messages if context_messages else messages
+            if view is not None:
+                # A request-time projection; stored history is never rewritten.
+                request_messages = view(request_messages)
             current_system = system() if callable(system) else system
             response = backend.complete(model, current_system, request_messages, available_tools, **options)
             succeeded = True

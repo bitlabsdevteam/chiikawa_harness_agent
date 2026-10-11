@@ -47,6 +47,7 @@ proceed without repeated confirmation.
 | [chiikawa/__init__.py](chiikawa/__init__.py) | Public exports: `Harness`, `Policy`, `Tool`, `tool`, `run_fleet`. |
 | [chiikawa/cli.py](chiikawa/cli.py), [chiikawa/__main__.py](chiikawa/__main__.py) | Argument parsing, entry points, CLI policy defaults, headless and interactive execution. |
 | [chiikawa/commands.py](chiikawa/commands.py) | Local slash commands, candidate discovery, and configuration transitions. |
+| [chiikawa/jev.py](chiikawa/jev.py) | Opt-in Jev decision layer: stdlib client for `POST jevmodel.org/v1/systemone`, `JevSettings` (mode shared by harnesses, children, and the policy), tighten-only permission advice, request-time context view, `FakeJev`. |
 | [chiikawa/prompt.py](chiikawa/prompt.py) | POSIX line editor, completion, history, bracketed paste, and terminal restoration. |
 | [chiikawa/terminal.py](chiikawa/terminal.py) | Activity display, bounded previews, diffs, progress, and terminal-safe text. |
 | [chiikawa/transcript.py](chiikawa/transcript.py) | Compact activity, public history replay, keyboard ownership, and live footer. |
@@ -159,6 +160,32 @@ these distinct entry-point contracts unless the task explicitly changes them.
   wrap-up request and its durable input message.
 - Kill shell process groups on timeout/interruption; do not leave descendants
   running after reporting that execution stopped.
+
+### Jev (opt-in decision layer)
+
+- Off by default. `/jev [off|permissions|context|on]` or `--jev` selects it; the choice lives on a shared
+  `JevSettings` for the process and is never saved. Turning it on needs `JEVMODEL_API_KEY` in the environment
+  (read lazily on the first call, never at import, never from `.env` by the harness). The enterprise profile refuses it.
+- Permissions: `Policy.advisor` is consulted only for non-read tools, after the command denylist. It can only
+  tighten (`ask` forces approval, `deny` blocks even in yolo); `allow`, errors, and unknown answers change nothing.
+- Context: `loop.run_loop(view=...)` maps each outgoing request to a projection that hides or truncates old tool
+  outputs. Stored history, journals, tool-call/result pairing, and opaque provider fields are never rewritten.
+  Compaction still runs at its threshold as a backstop.
+- Data egress: selected text is sent to a third party. Secret-like values are masked, and chunks naming `.env`,
+  `credential.md`, or `.chiikawa` are never sent. Any Jev failure falls back to built-in behavior; repeated failures
+  pause calls for 60 seconds.
+- Transparency: every Jev API call is shown like a tool call (`jev_start`/`jev_end` events from `JevSettings._ask`):
+  host, model, what was asked, the masked text sent, then the answer, input tokens, and time, or the failure and
+  fallback. Display errors never change a decision. Cached ratings make no call and print nothing.
+- Evaluation: `python3 demos/bench_jev.py` (offline, free) scores deciders against gold labels in
+  `demos/fixtures/jev_gold/` and `demos/make_jev_gold.py`. Offline Jev-shaped arms are stand-ins and say nothing about
+  real Jev accuracy or latency. `--live` is billable: run it only when the user asks, with `--max-requests`.
+
+### Environment file (opt-in)
+
+- `python3 -m chiikawa --env-file .env` loads `AZURE_OPENAI_*`, `CHIIKAWA_*`, `OPENROUTER_*`, and `JEVMODEL_*`
+  settings. It is never automatic, never overrides variables already set, ignores other names, never prints values,
+  and is refused in the enterprise profile (`chiikawa/envfile.py`, `tests/test_envfile.py`).
 
 ### Conversations, sessions, and compaction
 
@@ -350,6 +377,7 @@ than new automated tests.
 | Harness / sessions / child agents | `tests/test_day4.py` |
 | CLI / fleets / interruption | `tests/test_day5.py`, `tests/test_day5_interrupt.py` |
 | Slash commands / line editor | `tests/test_commands.py` (real pseudo-terminal coverage) |
+| Jev layer / `/jev` / ablation scorer | `tests/test_jev.py`, `tests/test_jev_bench.py` |
 | Activity / diffs / terminal output | `tests/test_activity.py` |
 | Compact transcript / replay / keyboard ownership | `tests/test_transcript.py` (including real pseudo-terminals) |
 | OpenRouter / provider routing | `tests/test_openrouter.py` |

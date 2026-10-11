@@ -1,0 +1,19 @@
+{
+ "_instructions": "One task = a tiny starter project, the instruction you would type, and a command that decides pass/fail automatically. Aim for 3-5 steps and include some tasks that print long logs.",
+ "tasks": [
+  {
+   "id": "task001",
+   "title": "Fix an off-by-one bug",
+   "instruction": "The test in tests/test_stats.py is failing. Find the bug in stats.py and fix it.",
+   "files": {
+    "stats.py": "def average(values):\n    return sum(values) / (len(values) + 1)\n",
+    "tests/test_stats.py": "import unittest\nfrom stats import average\n\nclass T(unittest.TestCase):\n    def test_average(self):\n        self.assertEqual(average([2, 4, 6]), 4)\n\nif __name__ == '__main__':\n    unittest.main()\n"
+   },
+   "check": {
+    "command": "python3 -m unittest discover -s tests",
+    "expect_exit": 0
+   },
+   "max_turns": 12
+  }
+ ]
+}

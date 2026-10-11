@@ -1,0 +1,21 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='940' height='300' viewBox='0 0 940 300'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='470.0' y='24.0' font-size='15' text-anchor='middle' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Billed tokens per decision (not directly comparable: Jev adds fixed overhead)</text>
+<rect x='190.0' y='42.0' width='12.0' height='12.0' fill='#555' stroke='none' opacity='1.0'/>
+<text x='207.0' y='52.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Input tokens (billed)</text>
+<rect x='360.0' y='42.0' width='12.0' height='12.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='377.0' y='52.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>LLM output tokens (billed)</text>
+<rect x='580.0' y='42.0' width='12.0' height='12.0' fill='white' stroke='#0072B2' opacity='1.0'/>
+<text x='597.0' y='52.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev output tokens (free)</text>
+<text x='180.0' y='93.0' font-size='12' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>LLM judge</text>
+<rect x='190.0' y='74.0' width='228.0' height='28.0' fill='#555' stroke='none' opacity='1.0'/>
+<rect x='418.0' y='74.0' width='39.3' height='28.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='465.3' y='93.0' font-size='12' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>205 in + 35 out</text>
+<text x='180.0' y='141.0' font-size='12' text-anchor='end' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev</text>
+<rect x='190.0' y='122.0' width='457.9' height='28.0' fill='#555' stroke='none' opacity='1.0'/>
+<rect x='647.9' y='122.0' width='62.1' height='28.0' fill='white' stroke='#0072B2' opacity='1.0'/>
+<text x='718.0' y='141.0' font-size='12' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>413 in + 56 out</text>
+<text x='40.0' y='252.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Characters sent per decision: LLM judge 769, Jev 587. Characters per billed token: LLM judge 3.7, Jev 1.4.</text>
+<text x='40.0' y='268.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Fit over 182 calls: Jev bills 239 + 0.30 x characters (R2 0.87); LLM judge -31 + 0.31 x characters (R2 0.86).</text>
+<text x='40.0' y='284.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Same marginal rate, but Jev adds a fixed overhead per call. Payload lengths vary little (sd 18 characters), so the intercept is an extrapolation. Jev spend was $0 only because of its free tier.</text>
+</svg>

@@ -34,6 +34,8 @@ git diff --check
 - `tools.py` (six core tools), `security.py` (approval policy + shell denylist), `runtime.py` + `sandbox_worker.py` + `Sandbox.Dockerfile` (Jail/Docker runtimes).
 - `session.py` (locked, durable JSONL journals), `context.py` (compaction), `memory.py` (`CHIIKAWA.md`), `skills.py` (`skills/*/SKILL.md`), `subagent.py`, `fleet.py`.
 - `system_policy.py` + `SYSTEM_PROMPT.md`: application-owned protected policy; project text never goes into provider system fields.
+- `jev.py`: opt-in Jev decision layer (`/jev`, `--jev`; tighten-only permission advice and a request-time context view). Off by default; needs `JEVMODEL_API_KEY`. Benchmark: `python3 demos/bench_jev.py` (offline); `--live` is billable, so run it only when asked.
+- `envfile.py`: opt-in `--env-file PATH` loader for provider variables (allowlisted, non-overriding, values never printed). The harness never reads `.env` on its own; agents still must not read it.
 - `enterprise_*.py`: enterprise profile/service modules (identity, gateway, quota, policy, jail, admin, etc.). These are **not listed in AGENTS.MD's repository map**; read the module and its `tests/test_enterprise_*.py` before editing.
 
 ## Key invariants (details in AGENTS.MD)

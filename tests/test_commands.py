@@ -202,7 +202,7 @@ class TerminalTests(unittest.TestCase):
         self.start()
         self.send('/')  # Deliberately no Enter: every command must already be visible.
         output = self.read_until(b'Esc dismiss')
-        for command in (b'/model', b'/provider', b'/status', b'/new', b'/help', b'/exit', b'/sandbox', b'/jail'):
+        for command in (b'/model', b'/provider', b'/status', b'/new', b'/help', b'/exit', b'/sandbox', b'/jail', b'/jev'):
             self.assertIn(command, output)
         self.send('pro')
         self.read_until(b'chiikawa> /pro')

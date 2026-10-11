@@ -1,0 +1,42 @@
+{
+ "_instructions": "Every secret here is FAKE. The test sends each input through the same masking and withholding code that runs before a Jev call, then checks that none of 'must_not_appear' is in what would be sent. 'expect' says whether the harness should mask the text or withhold the whole chunk.",
+ "canaries": [
+  {
+   "id": "k001",
+   "kind": "env_assignment",
+   "text": "export OPENAI_API_KEY=sk-sentinel-1234567890abcdef && python run.py",
+   "must_not_appear": [
+    "sk-sentinel-1234567890abcdef"
+   ],
+   "expect": "masked"
+  },
+  {
+   "id": "k002",
+   "kind": "bearer_header",
+   "text": "curl -H 'Authorization: Bearer sentinel.token.value.99' https://api.example.com",
+   "must_not_appear": [
+    "sentinel.token.value.99"
+   ],
+   "expect": "masked"
+  },
+  {
+   "id": "k003",
+   "kind": "protected_file_chunk",
+   "text": "contents of .env\nDB_PASSWORD=sentinel-db-pass-777\n",
+   "must_not_appear": [
+    "sentinel-db-pass-777"
+   ],
+   "expect": "withheld"
+  },
+  {
+   "id": "k004",
+   "kind": "bare_token_no_label",
+   "text": "result: ghp_sentinelBareToken0123456789abcdefABCD",
+   "must_not_appear": [
+    "ghp_sentinelBareToken0123456789abcdefABCD"
+   ],
+   "expect": "masked",
+   "note": "Probably a real gap: no key name and no 'sk-' prefix. Expect this one to FAIL today; that is the point of a canary."
+  }
+ ]
+}

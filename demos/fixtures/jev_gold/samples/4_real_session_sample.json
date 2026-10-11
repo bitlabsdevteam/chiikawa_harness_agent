@@ -1,0 +1,23 @@
+{
+ "_instructions": "Export a real session, then scrub it: replace names, hostnames, tokens and any secret with placeholders. Then mark which tool outputs the final fix actually depended on ('needed': true) and quote the exact line in 'needle'. Keep the order of messages.",
+ "id": "real001",
+ "scrubbed_by": "your-initials",
+ "scrub_checked": false,
+ "query": "Tests fail after the dependency upgrade, please fix.",
+ "chunks": [
+  {
+   "id": "r1c0",
+   "name": "bash",
+   "needed": true,
+   "needle": "ImportError: cannot import name 'soft_unicode' from 'markupsafe'",
+   "text": "...(paste the scrubbed output here, can be long)..."
+  },
+  {
+   "id": "r1c1",
+   "name": "grep",
+   "needed": false,
+   "needle": null,
+   "text": "...(scrubbed output)..."
+  }
+ ]
+}

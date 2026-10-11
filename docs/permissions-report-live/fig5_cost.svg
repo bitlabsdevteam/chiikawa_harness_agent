@@ -1,0 +1,23 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='940' height='330' viewBox='0 0 940 330'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='470.0' y='24.0' font-size='15' text-anchor='middle' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Cost of one decision: time and input tokens</text>
+<text x='60.0' y='60.0' font-size='12' text-anchor='start' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Time per decision (ms), p50 and p95</text>
+<text x='60.0' y='92.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>LLM judge (yolo)</text>
+<rect x='150.0' y='80.0' width='177.9' height='18.0' fill='#E69F00' stroke='none' opacity='1'/>
+<text x='333.9' y='93.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>2,502 p50</text>
+<rect x='150.0' y='102.0' width='330.0' height='18.0' fill='#E69F00' stroke='none' opacity='0.55'/>
+<text x='486.0' y='115.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>4,640 p95</text>
+<text x='60.0' y='166.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev (yolo)</text>
+<rect x='150.0' y='154.0' width='96.2' height='18.0' fill='#0072B2' stroke='none' opacity='1'/>
+<text x='252.2' y='167.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>1,352 p50</text>
+<rect x='150.0' y='176.0' width='135.2' height='18.0' fill='#0072B2' stroke='none' opacity='0.55'/>
+<text x='291.2' y='189.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>1,901 p95</text>
+<text x='520.0' y='60.0' font-size='12' text-anchor='start' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Input tokens per decision (mean)</text>
+<text x='520.0' y='92.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>LLM judge (yolo)</text>
+<rect x='610.0' y='80.0' width='114.5' height='18.0' fill='#E69F00' stroke='none' opacity='1'/>
+<text x='730.5' y='93.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>205</text>
+<text x='520.0' y='166.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev (yolo)</text>
+<rect x='610.0' y='154.0' width='230.0' height='18.0' fill='#0072B2' stroke='none' opacity='1'/>
+<text x='846.0' y='167.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>413</text>
+<text x='40.0' y='318.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Jev bills its question text as input tokens, so its per-call tokens include the fixed question wording.</text>
+</svg>

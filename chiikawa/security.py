@@ -33,11 +33,17 @@ DENY_PATTERNS = [
 class Policy:
     """Decide whether a neutral tool call may execute, without executing it."""
 
-    def __init__(self, mode="safe", approver=None):
-        """Choose a known mode and an optional (call, reason) approval callback."""
+    def __init__(self, mode="safe", approver=None, advisor=None):
+        """Choose a known mode, an approval callback, and an optional tighten-only advisor.
+
+        The advisor takes a call and returns "allow", "ask", "deny", or None. It is
+        consulted only for non-read tools, after the command denylist, and can never
+        loosen a decision; an exception or any other value means no advice.
+        """
         self._lock = RLock()
         self.mode = mode
         self.approver = approver if approver is not None else lambda call, reason: False
+        self.advisor = advisor
 
     @property
     def mode(self):
@@ -69,11 +75,15 @@ class Policy:
             command = call.get("args", {}).get("command", "")
             if any(re.search(pattern, command) for pattern in DENY_PATTERNS):
                 return "dangerous bash command denied by policy"
-        if self.mode == "yolo" or (name in READ_TOOLS and self.mode != "ask"):
+        advice = self._advice(call) if name not in READ_TOOLS else None
+        if advice == "deny":
+            return "advisor denied this call"
+        if (self.mode == "yolo" or (name in READ_TOOLS and self.mode != "ask")) and advice != "ask":
             return None
         if self.mode == "read-only":
-            return "read-only mode permits only read_file, list_files, and grep"
-        reason = f"{self.mode} mode requires approval for {name}"
+            return None if name in READ_TOOLS else "read-only mode permits only read_file, list_files, and grep"
+        reason = (f"advisor requests approval for {name}" if advice == "ask"
+                  else f"{self.mode} mode requires approval for {name}")
         decision = self.approver(call, reason)
         if decision is Approval.ALL:
             self.mode = "yolo"
@@ -81,3 +91,13 @@ class Policy:
         if decision is True:
             return None
         return reason
+
+    def _advice(self, call):
+        """Ask the optional advisor; failures and unknown answers mean no advice."""
+        if self.advisor is None:
+            return None
+        try:
+            advice = self.advisor(call)
+        except Exception:
+            return None
+        return advice if advice in ("ask", "deny") else None

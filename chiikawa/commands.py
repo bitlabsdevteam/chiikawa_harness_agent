@@ -2,7 +2,7 @@
 
 import os
 
-from . import context, providers
+from . import context, jev as jev_module, providers
 from .terminal import safe_text
 
 PERMISSIONS = {"ask": "ask", "safe": "safe", "all": "yolo", "read-only": "read-only"}
@@ -12,6 +12,7 @@ COMMANDS = (
     ("/provider", "Show or switch the provider", "[foundry|openrouter]"),
     ("/status", "Show session, model, and context usage", ""),
     ("/permissions", "Choose approvals for each action or all actions", "[ask|safe|all|read-only]"),
+    ("/jev", "Choose whether to use the Jev decision model", "[off|permissions|context|on]"),
     ("/new", "Start a fresh conversation", ""),
     ("/help", "Show all commands", ""),
     ("/exit", "Exit Chiikawa", ""),
@@ -53,6 +54,9 @@ class Commands:
             if command == "/permissions":
                 return [(f"/permissions {name}", f"{name}{' (current)' if mode == self.harness.policy.mode else ''}")
                         for name, mode in PERMISSIONS.items() if name.startswith(argument)]
+            if command == "/jev":
+                return [(f"/jev {name}", f"{name}{' (current)' if name == self.harness.jev.mode else ''}")
+                        for name in jev_module.MODES if name.startswith(argument)]
             if command == "/provider":
                 return [(f"/provider {name}", f"{name}{' (current)' if name == self.harness.provider_name else ''}")
                         for name in self.providers() if name.startswith(argument)]
@@ -62,6 +66,40 @@ class Commands:
             return []
         prefix = command.rstrip("/") if command != "/" else "/"
         return [(name, f"{name:<11} {description}") for name, description, _ in COMMANDS if name.startswith(prefix)]
+
+    def jev_status(self):
+        settings = self.harness.jev
+        meter = settings.meter.summary()
+        line = f"Jev: {settings.mode}"
+        if settings.mode != "off":
+            line += f" · {meter['calls']} calls · {meter['input_tokens']:,} input tokens · {meter['mean_ms']:.0f} ms mean"
+            if meter["errors"]:
+                line += f" · {meter['errors']} fell back"
+            if meter["chunks"]:
+                line += f" · view {meter['chars_before']:,} → {meter['chars_after']:,} chars"
+        return line
+
+    def jev(self, argument):
+        """Show or choose the Jev mode; any failure leaves the current mode unchanged."""
+        settings = self.harness.jev
+        if argument and argument not in jev_module.MODES:
+            self.say("Usage: /jev [" + "|".join(jev_module.MODES) + "]")
+            return
+        if argument and argument != "off" and self.harness.profile == "enterprise":
+            self.say("Jev sends data to a third-party service; the enterprise profile keeps it off.")
+            return
+        if argument:
+            try:
+                settings.set_mode(argument)
+            except (RuntimeError, ValueError) as exc:
+                self.say(f"Jev stays {settings.mode}: {exc}")
+                return
+        self.say(f"{self.jev_status()}\n"
+                 "off: never call Jev · permissions: Jev may tighten approvals for non-read tools · "
+                 "context: Jev rates old tool outputs per request · on: both\n"
+                 f"Key: {'found' if settings.available() else 'missing'} ({jev_module.KEY_ENV}, environment only)\n"
+                 "Selected text (commands, tool-output excerpts) is sent to jevmodel.org with secret-like values masked. "
+                 "Any Jev failure falls back to built-in behavior. Applies until exit.")
 
     def say(self, text):
         print(safe_text(text), flush=True)
@@ -78,7 +116,7 @@ class Commands:
         if name not in names:
             self.say(f"Unknown command: {name}. Type / for all commands.")
             return True
-        if argument and name not in ("/model", "/provider", "/permissions"):
+        if argument and name not in ("/model", "/provider", "/permissions", "/jev"):
             self.say(f"Usage: {name}")
             return True
         agent = self.harness
@@ -98,6 +136,8 @@ class Commands:
                          "Applies until exit, including new conversations and subagents.\n"
                          "Isolation, command denials, and IT restrictions still apply.\n"
                          "Use /permissions ask to require approval for each action.")
+        elif name == "/jev":
+            self.jev(argument)
         elif name == "/status":
             managed = agent._enterprise.refresh() if agent.profile == "enterprise" else None
             status = context.context_status(agent.messages, agent.budget_tokens)
@@ -107,7 +147,7 @@ class Commands:
                      f"Workspace: {agent.workdir}\nSession: {agent.session_path or '(new; no messages yet)'}\n"
                      f"Context history (est.): ~{status['estimated_tokens']:,.0f} / {agent.budget_tokens:,} tokens\n"
                      f"Output limit: {agent.max_output_tokens:,} tokens per response\n"
-                     f"Turn limit: {agent.max_turns}")
+                     f"Turn limit: {agent.max_turns}\n{self.jev_status()}")
             if managed is not None:
                 quota = managed["quota"]
                 limit = "unlimited" if quota["limit"] is None else f"{quota['limit']:,}"
@@ -162,6 +202,7 @@ class Commands:
                                                 sandbox_network=agent.sandbox_network,
                                                 sandbox_image=agent.sandbox_image)
                 replacement.policy = agent.policy
+                replacement.jev = agent.jev
             except (OSError, ValueError, RuntimeError) as exc:
                 self.say(f"Could not start a new conversation: {exc}")
                 return True

@@ -1,0 +1,55 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='940' height='400' viewBox='0 0 940 400'>
+<rect width='100%' height='100%' fill='white'/>
+<text x='470.0' y='24.0' font-size='15' text-anchor='middle' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Headline: what happens to the 122 test calls</text>
+<rect x='40.0' y='42.0' width='12.0' height='12.0' fill='#7A7F85' stroke='none' opacity='1.0'/>
+<text x='58.0' y='52.0' font-size='10.5' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Regex denylist, yolo mode (baseline)</text>
+<rect x='294.8' y='42.0' width='12.0' height='12.0' fill='#B9BEC3' stroke='none' opacity='1.0'/>
+<text x='312.8' y='52.0' font-size='10.5' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Regex denylist, safe mode</text>
+<rect x='480.3' y='42.0' width='12.0' height='12.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<text x='498.3' y='52.0' font-size='10.5' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Regex + LLM judge (yolo)</text>
+<rect x='659.5' y='42.0' width='12.0' height='12.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<text x='677.5' y='52.0' font-size='10.5' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Regex + Jev (yolo)</text>
+<text x='40.0' y='82.0' font-size='13' text-anchor='start' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Dangerous calls allowed to run (the safety number)</text>
+<text x='400.0' y='82.0' font-size='10' text-anchor='start' fill='#666' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>lower is safer</text>
+<rect x='40.0' y='90.0' width='390.7' height='15.0' fill='#7A7F85' stroke='none' opacity='1.0'/>
+<line x1='341.0' y1='97.5' x2='505.5' y2='97.5' stroke='#222222' stroke-width='1'/>
+<text x='513.5' y='102.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>65%  (28/43)</text>
+<rect x='40.0' y='109.0' width='0.0' height='15.0' fill='#B9BEC3' stroke='none' opacity='1.0'/>
+<line x1='40.0' y1='116.5' x2='89.2' y2='116.5' stroke='#222222' stroke-width='1'/>
+<text x='97.2' y='121.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>0%  (0/43)</text>
+<rect x='40.0' y='128.0' width='14.0' height='15.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<line x1='42.5' y1='135.5' x2='112.4' y2='135.5' stroke='#222222' stroke-width='1'/>
+<text x='120.4' y='140.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>2%  (1/43)</text>
+<rect x='40.0' y='147.0' width='27.9' height='15.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='47.7' y1='154.5' x2='132.7' y2='154.5' stroke='#222222' stroke-width='1'/>
+<text x='140.7' y='159.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>5%  (2/43)</text>
+<text x='40.0' y='188.0' font-size='13' text-anchor='start' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>Routine calls interrupted or blocked</text>
+<text x='400.0' y='188.0' font-size='10' text-anchor='start' fill='#666' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>lower is smoother</text>
+<rect x='40.0' y='196.0' width='0.0' height='15.0' fill='#7A7F85' stroke='none' opacity='1.0'/>
+<line x1='40.0' y1='203.5' x2='88.2' y2='203.5' stroke='#222222' stroke-width='1'/>
+<text x='96.2' y='208.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>0%  (0/44)</text>
+<rect x='40.0' y='215.0' width='600.0' height='15.0' fill='#B9BEC3' stroke='none' opacity='1.0'/>
+<line x1='591.8' y1='222.5' x2='640.0' y2='222.5' stroke='#222222' stroke-width='1'/>
+<text x='648.0' y='227.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>100%  (44/44)</text>
+<rect x='40.0' y='234.0' width='54.5' height='15.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<line x1='61.6' y1='241.5' x2='167.0' y2='241.5' stroke='#222222' stroke-width='1'/>
+<text x='175.0' y='246.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>9%  (4/44)</text>
+<rect x='40.0' y='253.0' width='13.6' height='15.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='42.4' y1='260.5' x2='110.8' y2='260.5' stroke='#222222' stroke-width='1'/>
+<text x='118.8' y='265.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>2%  (1/44)</text>
+<text x='40.0' y='294.0' font-size='13' text-anchor='start' fill='#222222' font-weight='bold' font-family='Helvetica,Arial,sans-serif'>3-class accuracy (allow / ask / deny)</text>
+<text x='340.0' y='294.0' font-size='10' text-anchor='start' fill='#666' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>higher is better; the yolo baseline cannot answer 'ask'</text>
+<rect x='40.0' y='302.0' width='290.2' height='15.0' fill='#7A7F85' stroke='none' opacity='1.0'/>
+<line x1='278.1' y1='309.5' x2='382.9' y2='309.5' stroke='#222222' stroke-width='1'/>
+<text x='390.9' y='314.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>48%  (59/122)</text>
+<rect x='40.0' y='321.0' width='245.9' height='15.0' fill='#B9BEC3' stroke='none' opacity='1.0'/>
+<line x1='236.0' y1='328.5' x2='339.1' y2='328.5' stroke='#222222' stroke-width='1'/>
+<text x='347.1' y='333.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>41%  (50/122)</text>
+<rect x='40.0' y='340.0' width='550.8' height='15.0' fill='#E69F00' stroke='none' opacity='1.0'/>
+<line x1='553.4' y1='347.5' x2='612.9' y2='347.5' stroke='#222222' stroke-width='1'/>
+<text x='620.9' y='352.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>92%  (112/122)</text>
+<rect x='40.0' y='359.0' width='545.9' height='15.0' fill='#0072B2' stroke='none' opacity='1.0'/>
+<line x1='547.4' y1='366.5' x2='609.3' y2='366.5' stroke='#222222' stroke-width='1'/>
+<text x='617.3' y='371.0' font-size='11' text-anchor='start' fill='#222222' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>91%  (111/122)</text>
+<text x='40.0' y='392.0' font-size='10' text-anchor='start' fill='#555' font-weight='normal' font-family='Helvetica,Arial,sans-serif'>Lines show the 95% Wilson interval. Same 122 synthetic calls for every arm. Safe mode is safe but interrupts everything.</text>
+</svg>

@@ -58,6 +58,7 @@ class TranscriptDisplay(TerminalDisplay):
         self.total_input = self.total_output = 0
         self.usage_seen = False
         self.missing_usage = False
+        self.jev_host = "jevmodel.org"
 
     def size(self):
         try:
@@ -286,6 +287,8 @@ class TranscriptDisplay(TerminalDisplay):
                 self.missing_usage |= not isinstance(incoming, int) or not isinstance(outgoing, int)
                 self.total_input += incoming if isinstance(incoming, int) else 0
                 self.total_output += outgoing if isinstance(outgoing, int) else 0
+            elif kind == "jev_start":
+                self.jev_host = payload["host"]
             elif kind == "compaction_start":
                 self.wait_label = "Compacting context"
             elif kind in ("compaction", "model_start"):
@@ -294,6 +297,20 @@ class TranscriptDisplay(TerminalDisplay):
                 self._record_text("reasoning", payload["text"])
             elif kind == "assistant" and payload.get("text"):
                 self._record_text("assistant", payload["text"], answer=not payload.get("tool_calls"))
+            elif kind == "jev_end":
+                # Finished calls print as one row beside the tool that triggered them, without
+                # flushing that tool's live entry (its result is still to come).
+                ok = payload["ok"]
+                tokens = payload.get("input_tokens")
+                text = (f"{payload['summary']}" + (f" · {tokens:,} input tokens" if isinstance(tokens, int) else "")
+                        + f" · {payload['elapsed']:.1f}s" if ok else
+                        f"{payload['error']} · fell back to built-in behavior · {payload['elapsed']:.1f}s")
+                entry = {"kind": "tool", "status": "done" if ok else "error", "text": text, "details": {},
+                         "call": {"name": "jev", "args": {"detail": f"{payload['purpose']}: {payload['detail']}",
+                                                          "host": self.jev_host}}}
+                self._erase()
+                self.entries.append(entry)
+                self._emit(self.rows([entry]))
             elif kind == "tool_start":
                 # Only presentation fields are retained; never copy provider replay objects.
                 call = {"name": payload.get("name", "tool"), "args": dict(payload.get("args", {}))}
